@@ -53,7 +53,6 @@ async function interactiveSetup(opts: SetupOpts) {
 				label: s.name,
 				hint: s.detect() ? "detected" : undefined,
 			})),
-			initialValues: detected.map((s) => s.id),
 			required: true,
 		});
 
