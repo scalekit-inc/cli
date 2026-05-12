@@ -28,6 +28,9 @@
 		"cli",
 		"auth"
 	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"license": "MIT",
 	"dependencies": {
 		"cfonts": "^3.3.1",
