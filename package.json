@@ -21,7 +21,7 @@
 		"lint:fix": "biome check --write .",
 		"publint": "publint",
 		"prepublishOnly": "npm run build && npm run publint",
-		"release": "np --any-branch --no-tests"
+		"release": "np --no-tests"
 	},
 	"keywords": [
 		"scalekit",
