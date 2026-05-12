@@ -24,6 +24,9 @@ importers:
       '@types/node':
         specifier: ^25.7.0
         version: 25.7.0
+      publint:
+        specifier: ^0.3.20
+        version: 0.3.20
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(typescript@6.0.3)
@@ -258,6 +261,10 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@publint/pack@0.1.4':
+    resolution: {integrity: sha512-HDVTWq3H0uTXiU0eeSQntcVUTPP3GamzeXI41+x7uU9J65JgWQh3qWZHblR1i0npXfFtF+mxBiU2nJH8znxWnQ==}
+    engines: {node: '>=18'}
 
   '@rollup/rollup-android-arm-eabi@4.60.3':
     resolution: {integrity: sha512-x35CNW/ANXG3hE/EZpRU8MXX1JDN86hBb2wMGAtltkz7pc6cxgjpy1OMMfDosOQ+2hWqIkag/fGok1Yady9nGw==}
@@ -535,6 +542,10 @@ packages:
   mlly@1.8.2:
     resolution: {integrity: sha512-d+ObxMQFmbt10sretNDytwt85VrbkhhUA/JBGm1MPaWJ65Cl4wOgLaB1NYvJSZ0Ef03MMEU/0xpPMXUIQ29UfA==}
 
+  mri@1.2.0:
+    resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
+    engines: {node: '>=4'}
+
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
@@ -544,6 +555,9 @@ packages:
   object-assign@4.1.1:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
     engines: {node: '>=0.10.0'}
+
+  package-manager-detector@1.6.0:
+    resolution: {integrity: sha512-61A5ThoTiDG/C8s8UMZwSorAGwMJ0ERVGj2OjoW5pAalsNOg15+iQiPzrLJ4jhZ1HJzmC2PIHT2oEiH3R5fzNA==}
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
@@ -580,6 +594,11 @@ packages:
       yaml:
         optional: true
 
+  publint@0.3.20:
+    resolution: {integrity: sha512-UWqFYP7VBVCe9l/leEEGJrDs6Am4K4KapLmLi5qbt+9fA+Ny38ghdW+bw1nYfVqCK8/3kgsxjjhFjTYqYYRpyw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   readdirp@4.1.2:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
@@ -592,6 +611,10 @@ packages:
     resolution: {integrity: sha512-pAQK9HalE84QSm4Po3EmWIZPd3FnjkShVkiMlz1iligWYkWQ7wHYd1PF/T7QZ5TVSD6uSTon5gBVMSM4JfBV+A==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
+
+  sade@1.8.1:
+    resolution: {integrity: sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A==}
+    engines: {node: '>=6'}
 
   source-map@0.7.6:
     resolution: {integrity: sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ==}
@@ -790,6 +813,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  '@publint/pack@0.1.4': {}
 
   '@rollup/rollup-android-arm-eabi@4.60.3':
     optional: true
@@ -1000,6 +1025,8 @@ snapshots:
       pkg-types: 1.3.1
       ufo: 1.6.4
 
+  mri@1.2.0: {}
+
   ms@2.1.3: {}
 
   mz@2.7.0:
@@ -1009,6 +1036,8 @@ snapshots:
       thenify-all: 1.6.0
 
   object-assign@4.1.1: {}
+
+  package-manager-detector@1.6.0: {}
 
   pathe@2.0.3: {}
 
@@ -1027,6 +1056,13 @@ snapshots:
   postcss-load-config@6.0.1:
     dependencies:
       lilconfig: 3.1.3
+
+  publint@0.3.20:
+    dependencies:
+      '@publint/pack': 0.1.4
+      package-manager-detector: 1.6.0
+      picocolors: 1.1.1
+      sade: 1.8.1
 
   readdirp@4.1.2: {}
 
@@ -1062,6 +1098,10 @@ snapshots:
       '@rollup/rollup-win32-x64-gnu': 4.60.3
       '@rollup/rollup-win32-x64-msvc': 4.60.3
       fsevents: 2.3.3
+
+  sade@1.8.1:
+    dependencies:
+      mri: 1.2.0
 
   source-map@0.7.6: {}
 
