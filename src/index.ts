@@ -1,5 +1,6 @@
 import cfonts from "cfonts";
 import { Command } from "commander";
+import { setupCommand } from "./commands/setup.js";
 import { scalekitHelp } from "./core/help.js";
 
 function showBanner() {
@@ -26,9 +27,11 @@ program
 	.configureHelp(scalekitHelp())
 	.addHelpCommand(false);
 
+program.addCommand(setupCommand);
+
 program.action(() => {
 	showBanner();
 	program.help();
 });
 
-program.parse();
+await program.parseAsync();
