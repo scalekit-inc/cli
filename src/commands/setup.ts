@@ -122,7 +122,7 @@ async function directSetup(stackId: string, opts: SetupOpts) {
 const setupExtensionShortcut = styledCommand("extension")
 	.alias("ext")
 	.description("shortcut → extension install <name>")
-	.argument("<name>", "cursor, claude, codex (or any alias)")
+	.argument("<name>", "cursor, claude, codex, copilot (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
 	.action(async (name: string, opts: SetupOpts) => {
@@ -132,7 +132,7 @@ const setupExtensionShortcut = styledCommand("extension")
 
 export const setupCommand = styledCommand("setup")
 	.description("set up ScaleKit auth stacks for your editors")
-	.argument("[stack]", "cursor, claude, codex (or any alias)")
+	.argument("[stack]", "cursor, claude, codex, copilot (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
 	.addCommand(setupExtensionShortcut)

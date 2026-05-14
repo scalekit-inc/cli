@@ -1,5 +1,6 @@
 import { claudeStack } from "./claude.js";
 import { codexStack } from "./codex.js";
+import { copilotStack } from "./copilot.js";
 import { cursorStack } from "./cursor.js";
 
 export interface Stack {
@@ -12,7 +13,12 @@ export interface Stack {
 	install: () => Promise<void>;
 }
 
-export const stacks: Stack[] = [cursorStack, claudeStack, codexStack];
+export const stacks: Stack[] = [
+	cursorStack,
+	claudeStack,
+	codexStack,
+	copilotStack,
+];
 
 export function findStack(id: string): Stack | undefined {
 	const needle = id.toLowerCase();
