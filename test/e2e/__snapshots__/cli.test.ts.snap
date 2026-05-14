@@ -11,9 +11,11 @@ COMMANDS
   setup          set up ScaleKit auth stacks for your editors
 
 OPTIONS
-  -V, --version  output the version number
-  --plain        disable colors and styling (also respects NO_COLOR env)
-  -h, --help     display help for command"
+  -V, --version          output the version number
+  --plain                disable colors and styling (also respects NO_COLOR env)
+  --json                 output machine-readable JSON
+  -y, --non-interactive  skip all prompts, use defaults
+  -h, --help             display help for command"
 `;
 
 exports[`CLI E2E > shows setup help 1`] = `
