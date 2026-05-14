@@ -142,3 +142,52 @@ describe("setup <stack> with confirmation", () => {
 		expect(cancel).toHaveBeenCalledWith("Setup cancelled.");
 	});
 });
+
+describe("setup extension shortcut", () => {
+	it("setup extension cursor --dry-run shows commands", async () => {
+		await run(["extension", "cursor", "--dry-run"]);
+
+		const cursor = stacks[0];
+		for (const cmd of cursor.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+
+	it("setup ext cc --dry-run resolves alias via shortcut", async () => {
+		await run(["ext", "cc", "--dry-run"]);
+
+		const claude = stacks[1];
+		for (const cmd of claude.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+
+	it("inherits parent --dry-run flag", async () => {
+		await run(["--dry-run", "extension", "cursor"]);
+
+		const cursor = stacks[0];
+		for (const cmd of cursor.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+});
+
+describe("setup with aliases", () => {
+	it("setup cc --dry-run resolves alias directly", async () => {
+		await run(["cc", "--dry-run"]);
+
+		const claude = stacks[1];
+		for (const cmd of claude.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+
+	it("setup opencode --dry-run resolves codex alias", async () => {
+		await run(["opencode", "--dry-run"]);
+
+		const codex = stacks[2];
+		for (const cmd of codex.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+});

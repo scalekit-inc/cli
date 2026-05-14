@@ -9,6 +9,7 @@ export const codexStack: Stack = {
 	id: "codex",
 	name: "Codex",
 	description: "Scalekit auth plugins for Codex / OpenCode",
+	aliases: ["opencode"],
 	commands: [INSTALL_CMD],
 
 	detect() {

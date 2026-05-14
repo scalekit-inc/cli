@@ -1,7 +1,7 @@
 import cfonts from "cfonts";
-import { Command } from "commander";
+import { extensionCommand } from "./commands/extension.js";
 import { setupCommand } from "./commands/setup.js";
-import { scalekitHelp } from "./core/help.js";
+import { styledCommand } from "./core/help.js";
 
 function showBanner() {
 	if (process.env.NO_COLOR || process.argv.includes("--plain")) {
@@ -17,16 +17,13 @@ function showBanner() {
 	});
 }
 
-const program = new Command();
-
-program
-	.name("scalekit")
+const program = styledCommand("scalekit")
 	.description("Auth stack for the agentic era")
 	.version("0.1.0")
 	.option("--plain", "disable colors and styling (also respects NO_COLOR env)")
-	.configureHelp(scalekitHelp())
 	.addHelpCommand(false);
 
+program.addCommand(extensionCommand);
 program.addCommand(setupCommand);
 
 program.action(() => {

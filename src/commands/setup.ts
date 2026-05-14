@@ -7,7 +7,7 @@ import {
 	multiselect,
 	outro,
 } from "@clack/prompts";
-import { Command } from "commander";
+import { styledCommand } from "../core/help.js";
 import { findStack, type Stack, stacks } from "../stacks/registry.js";
 
 interface SetupOpts {
@@ -119,17 +119,30 @@ async function directSetup(stackId: string, opts: SetupOpts) {
 	}
 }
 
-export const setupCommand = new Command("setup")
-	.description("set up ScaleKit auth stacks for your editors")
-	.argument("[stack]", "cursor, claude, or codex")
+const setupExtensionShortcut = styledCommand("extension")
+	.alias("ext")
+	.description("shortcut → extension install <name>")
+	.argument("<name>", "cursor, claude, codex (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
+	.action(async (name: string, opts: SetupOpts) => {
+		const parentOpts = setupExtensionShortcut.parent?.opts<SetupOpts>() ?? {};
+		await directSetup(name, { ...parentOpts, ...opts });
+	});
+
+export const setupCommand = styledCommand("setup")
+	.description("set up ScaleKit auth stacks for your editors")
+	.argument("[stack]", "cursor, claude, codex (or any alias)")
+	.option("-y, --yes", "skip confirmation prompts")
+	.option("--dry-run", "show commands without executing")
+	.addCommand(setupExtensionShortcut)
 	.addHelpText(
 		"after",
 		`
 Examples:
   $ scalekit setup              interactive setup wizard
-  $ scalekit setup cursor       set up Cursor directly
+  $ scalekit setup cursor       set up Cursor directly (alias for setup extension cursor)
+  $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
   $ scalekit setup --dry-run    preview commands without running them`,
 	)

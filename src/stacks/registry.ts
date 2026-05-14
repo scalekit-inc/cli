@@ -6,6 +6,7 @@ export interface Stack {
 	id: string;
 	name: string;
 	description: string;
+	aliases?: string[];
 	commands: string[];
 	detect: () => boolean;
 	install: () => Promise<void>;
@@ -14,5 +15,6 @@ export interface Stack {
 export const stacks: Stack[] = [cursorStack, claudeStack, codexStack];
 
 export function findStack(id: string): Stack | undefined {
-	return stacks.find((s) => s.id === id);
+	const needle = id.toLowerCase();
+	return stacks.find((s) => s.id === needle || s.aliases?.includes(needle));
 }

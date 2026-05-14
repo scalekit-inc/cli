@@ -7,7 +7,8 @@ USAGE
   $ scalekit [options] [command]
 
 COMMANDS
-  setup  set up ScaleKit auth stacks for your editors
+  extension|ext  manage Scalekit extensions for coding tools
+  setup          set up ScaleKit auth stacks for your editors
 
 OPTIONS
   -V, --version  output the version number
@@ -16,21 +17,23 @@ OPTIONS
 `;
 
 exports[`CLI E2E > shows setup help 1`] = `
-"Usage: scalekit setup [options] [stack]
+"scalekit setup — set up ScaleKit auth stacks for your editors
 
-set up ScaleKit auth stacks for your editors
+USAGE
+  $ scalekit setup [options] [command] [stack]
 
-Arguments:
-  stack       cursor, claude, or codex
+COMMANDS
+  extension|ext  shortcut → extension install <name>
 
-Options:
+OPTIONS
   -y, --yes   skip confirmation prompts
   --dry-run   show commands without executing
   -h, --help  display help for command
 
 Examples:
   $ scalekit setup              interactive setup wizard
-  $ scalekit setup cursor       set up Cursor directly
+  $ scalekit setup cursor       set up Cursor directly (alias for setup extension cursor)
+  $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
   $ scalekit setup --dry-run    preview commands without running them"
 `;

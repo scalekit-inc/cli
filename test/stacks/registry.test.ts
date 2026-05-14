@@ -50,4 +50,26 @@ describe("findStack", () => {
 	it("returns undefined for empty string", () => {
 		expect(findStack("")).toBeUndefined();
 	});
+
+	it("finds claude by alias cc", () => {
+		expect(findStack("cc")?.id).toBe("claude");
+	});
+
+	it("finds claude by alias claude-code", () => {
+		expect(findStack("claude-code")?.id).toBe("claude");
+	});
+
+	it("finds codex by alias opencode", () => {
+		expect(findStack("opencode")?.id).toBe("codex");
+	});
+
+	it("is case-insensitive for id", () => {
+		expect(findStack("Claude")?.id).toBe("claude");
+		expect(findStack("CURSOR")?.id).toBe("cursor");
+	});
+
+	it("is case-insensitive for aliases", () => {
+		expect(findStack("CC")?.id).toBe("claude");
+		expect(findStack("OpenCode")?.id).toBe("codex");
+	});
 });
