@@ -89,3 +89,127 @@ describe("extension E2E", () => {
 		expect(output).toContain("Unknown extension");
 	});
 });
+
+describe("--json flag", () => {
+	it("ext ls --json outputs valid JSON array", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["--json", "ext", "ls"]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(Array.isArray(data)).toBe(true);
+		expect(data.length).toBeGreaterThan(0);
+		expect(data[0]).toHaveProperty("id");
+		expect(data[0]).toHaveProperty("name");
+		expect(data[0]).toHaveProperty("detected");
+		expect(data[0]).toHaveProperty("aliases");
+		expect(data[0]).toHaveProperty("description");
+	});
+
+	it("ext i cursor --json --dry-run outputs JSON with dry_run status", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"--json",
+			"ext",
+			"i",
+			"cursor",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(data.extension).toBe("cursor");
+		expect(data.status).toBe("dry_run");
+		expect(data.commands).toBeDefined();
+		expect(Array.isArray(data.commands)).toBe(true);
+	});
+
+	it("ext i unknown --json outputs JSON error to stderr", async () => {
+		const { exitCode, cleanStderr } = await runCLI([
+			"--json",
+			"ext",
+			"i",
+			"unknown",
+		]);
+		expect(exitCode).not.toBe(0);
+		const data = JSON.parse(cleanStderr);
+		expect(data.error).toContain("Unknown extension");
+	});
+
+	it("setup --json -y --dry-run outputs JSON with extensions array", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"--json",
+			"setup",
+			"--dry-run",
+			"--yes",
+		]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(data.extensions).toBeDefined();
+		expect(Array.isArray(data.extensions)).toBe(true);
+		expect(data.summary).toBeDefined();
+		expect(data.summary).toHaveProperty("succeeded");
+		expect(data.summary).toHaveProperty("failed");
+		for (const ext of data.extensions) {
+			expect(ext).toHaveProperty("id");
+			expect(ext).toHaveProperty("name");
+			expect(ext.status).toBe("dry_run");
+		}
+	});
+
+	it("setup cursor --json --dry-run outputs JSON for single stack", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"--json",
+			"setup",
+			"cursor",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(data.id).toBe("cursor");
+		expect(data.status).toBe("dry_run");
+		expect(data.commands).toBeDefined();
+	});
+
+	it("setup unknown --json outputs JSON error", async () => {
+		const { exitCode, cleanStderr } = await runCLI([
+			"--json",
+			"setup",
+			"unknown",
+		]);
+		expect(exitCode).not.toBe(0);
+		const data = JSON.parse(cleanStderr);
+		expect(data.error).toContain("Unknown stack");
+	});
+});
+
+describe("--non-interactive flag", () => {
+	it("setup --non-interactive --dry-run skips prompts", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"--non-interactive",
+			"setup",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("Dry run");
+	});
+
+	it("-y setup --dry-run works as shorthand", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"-y",
+			"setup",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("Would run");
+	});
+
+	it("ext i cursor --non-interactive --dry-run skips confirm", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"--non-interactive",
+			"ext",
+			"i",
+			"cursor",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("Would run");
+	});
+});

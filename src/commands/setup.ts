@@ -7,7 +7,9 @@ import {
 	multiselect,
 	outro,
 } from "@clack/prompts";
+import type { Command } from "commander";
 import { styledCommand } from "../core/help.js";
+import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
 import { findStack, type Stack, stacks } from "../stacks/registry.js";
 
 interface SetupOpts {
@@ -15,35 +17,66 @@ interface SetupOpts {
 	dryRun?: boolean;
 }
 
-async function runStack(stack: Stack, dryRun: boolean): Promise<boolean> {
-	for (const cmd of stack.commands) {
-		log.info(dryRun ? `Would run: ${cmd}` : `$ ${cmd}`);
+interface StackResult {
+	id: string;
+	name: string;
+	status: "installed" | "failed" | "dry_run";
+	commands?: string[];
+	error?: string;
+}
+
+async function runStack(
+	stack: Stack,
+	dryRun: boolean,
+	json: boolean,
+): Promise<StackResult> {
+	if (dryRun) {
+		if (!json) {
+			for (const cmd of stack.commands) {
+				log.info(`Would run: ${cmd}`);
+			}
+		}
+		return {
+			id: stack.id,
+			name: stack.name,
+			status: "dry_run",
+			commands: stack.commands,
+		};
 	}
-	if (dryRun) return true;
+
+	if (!json) {
+		for (const cmd of stack.commands) {
+			log.info(`$ ${cmd}`);
+		}
+	}
 
 	try {
 		await stack.install();
-		return true;
+		return { id: stack.id, name: stack.name, status: "installed" };
 	} catch (err) {
-		log.error(
-			`${stack.name} failed: ${err instanceof Error ? err.message : err}`,
-		);
-		return false;
+		const message = err instanceof Error ? err.message : String(err);
+		if (!json) {
+			log.error(`${stack.name} failed: ${message}`);
+		}
+		return { id: stack.id, name: stack.name, status: "failed", error: message };
 	}
 }
 
-async function interactiveSetup(opts: SetupOpts) {
-	intro("ScaleKit Setup");
+async function interactiveSetup(opts: SetupOpts, cmd: Command) {
+	const json = isJson(cmd);
+	const nonInteractive = isNonInteractive(cmd);
+
+	if (!json) intro("ScaleKit Setup");
 
 	const detected = stacks.filter((s) => s.detect());
 
-	if (detected.length > 0) {
+	if (!json && detected.length > 0) {
 		log.info(`Detected: ${detected.map((s) => s.name).join(", ")}`);
 	}
 
 	let toInstall: Stack[];
 
-	if (opts.yes) {
+	if (nonInteractive) {
 		toInstall = detected.length > 0 ? detected : stacks;
 	} else {
 		const selected = await multiselect({
@@ -64,17 +97,23 @@ async function interactiveSetup(opts: SetupOpts) {
 		toInstall = stacks.filter((s) => selected.includes(s.id));
 	}
 
-	let succeeded = 0;
-	let failed = 0;
+	const results: StackResult[] = [];
 
 	for (const stack of toInstall) {
-		log.step(`Setting up ${stack.name}...`);
-		if (await runStack(stack, !!opts.dryRun)) {
+		if (!json) log.step(`Setting up ${stack.name}...`);
+		const result = await runStack(stack, !!opts.dryRun, json);
+		results.push(result);
+		if (!json && result.status !== "failed") {
 			log.success(`${stack.name} — done`);
-			succeeded++;
-		} else {
-			failed++;
 		}
+	}
+
+	const succeeded = results.filter((r) => r.status !== "failed").length;
+	const failed = results.filter((r) => r.status === "failed").length;
+
+	if (json) {
+		jsonOut({ extensions: results, summary: { succeeded, failed } });
+		return;
 	}
 
 	if (opts.dryRun) {
@@ -88,15 +127,20 @@ async function interactiveSetup(opts: SetupOpts) {
 	}
 }
 
-async function directSetup(stackId: string, opts: SetupOpts) {
+async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
+	const json = isJson(cmd);
 	const stack = findStack(stackId);
+
 	if (!stack) {
 		const ids = stacks.map((s) => s.id).join(", ");
+		if (json) {
+			jsonErr(`Unknown stack "${stackId}". Available: ${ids}`);
+		}
 		log.error(`Unknown stack "${stackId}". Available: ${ids}`);
 		process.exit(1);
 	}
 
-	if (!opts.yes && !opts.dryRun) {
+	if (!isNonInteractive(cmd) && !opts.dryRun) {
 		intro("ScaleKit Setup");
 		const ok = await confirm({
 			message: `Install ${stack.name} auth stack?`,
@@ -107,12 +151,21 @@ async function directSetup(stackId: string, opts: SetupOpts) {
 		}
 	}
 
-	log.step(`Setting up ${stack.name}...`);
-	const ok = await runStack(stack, !!opts.dryRun);
+	if (!json) log.step(`Setting up ${stack.name}...`);
+	const result = await runStack(stack, !!opts.dryRun, json);
+
+	if (json) {
+		if (result.status === "failed") {
+			jsonErr(`${stack.name} failed: ${result.error}`);
+		}
+		jsonOut(result);
+		return;
+	}
 
 	if (opts.dryRun) {
 		outro("Dry run — no commands were executed.");
-	} else if (ok) {
+	} else if (result.status === "installed") {
+		log.success(`${stack.name} — done`);
 		outro(`${stack.name} auth stack installed.`);
 	} else {
 		process.exit(1);
@@ -125,9 +178,9 @@ const setupExtensionShortcut = styledCommand("extension")
 	.argument("<name>", "cursor, claude, codex, copilot (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
-	.action(async (name: string, opts: SetupOpts) => {
-		const parentOpts = setupExtensionShortcut.parent?.opts<SetupOpts>() ?? {};
-		await directSetup(name, { ...parentOpts, ...opts });
+	.action(async (name: string, opts: SetupOpts, cmd: Command) => {
+		const parentOpts = cmd.parent?.opts<SetupOpts>() ?? {};
+		await directSetup(name, { ...parentOpts, ...opts }, cmd);
 	});
 
 export const setupCommand = styledCommand("setup")
@@ -146,10 +199,12 @@ Examples:
   $ scalekit setup codex -y     skip confirmation
   $ scalekit setup --dry-run    preview commands without running them`,
 	)
-	.action(async (stackId: string | undefined, opts: SetupOpts) => {
-		if (stackId) {
-			await directSetup(stackId, opts);
-		} else {
-			await interactiveSetup(opts);
-		}
-	});
+	.action(
+		async (stackId: string | undefined, opts: SetupOpts, cmd: Command) => {
+			if (stackId) {
+				await directSetup(stackId, opts, cmd);
+			} else {
+				await interactiveSetup(opts, cmd);
+			}
+		},
+	);
