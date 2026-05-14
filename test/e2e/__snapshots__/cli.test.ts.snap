@@ -1,0 +1,39 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`CLI E2E > shows help and exits 0 1`] = `
+"scalekit — Auth stack for the agentic era
+
+USAGE
+  $ scalekit [options] [command]
+
+COMMANDS
+  extension|ext  manage Scalekit extensions for coding tools
+  setup          set up ScaleKit auth stacks for your editors
+
+OPTIONS
+  -V, --version  output the version number
+  --plain        disable colors and styling (also respects NO_COLOR env)
+  -h, --help     display help for command"
+`;
+
+exports[`CLI E2E > shows setup help 1`] = `
+"scalekit setup — set up ScaleKit auth stacks for your editors
+
+USAGE
+  $ scalekit setup [options] [command] [stack]
+
+COMMANDS
+  extension|ext  shortcut → extension install <name>
+
+OPTIONS
+  -y, --yes   skip confirmation prompts
+  --dry-run   show commands without executing
+  -h, --help  display help for command
+
+Examples:
+  $ scalekit setup              interactive setup wizard
+  $ scalekit setup cursor       set up Cursor directly (alias for setup extension cursor)
+  $ scalekit setup extension cc shortcut → extension install claude
+  $ scalekit setup codex -y     skip confirmation
+  $ scalekit setup --dry-run    preview commands without running them"
+`;

@@ -10,6 +10,7 @@ export const claudeStack: Stack = {
 	id: "claude",
 	name: "Claude Code",
 	description: "Scalekit auth plugins for Claude Code",
+	aliases: ["claude-code", "cc"],
 	commands: CMDS,
 
 	detect() {

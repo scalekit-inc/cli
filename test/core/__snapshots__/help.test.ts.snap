@@ -1,0 +1,18 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`scalekitHelp formatter > formats help with custom sections 1`] = `
+"testcli — A test CLI tool
+
+USAGE
+  $ testcli [options] [command]
+
+COMMANDS
+  deploy  deploy the app
+  config  manage configuration
+  help    display help for command
+
+OPTIONS
+  -v, --verbose  enable verbose output
+  --dry-run      preview without executing
+  -h, --help     display help for command"
+`;

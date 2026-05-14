@@ -17,10 +17,14 @@
 	"scripts": {
 		"build": "tsup",
 		"dev": "tsup --watch",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"test:e2e": "pnpm build && vitest run test/e2e",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"publint": "publint",
-		"prepublishOnly": "npm run build && npm run publint",
+		"prepublishOnly": "npm run test && npm run build && npm run publint",
 		"release": "np --no-tests"
 	},
 	"keywords": [
@@ -41,9 +45,12 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.15",
 		"@types/node": "^25.7.0",
+		"execa": "^9.6.1",
 		"np": "^11.2.0",
 		"publint": "^0.3.20",
+		"strip-ansi": "^7.2.0",
 		"tsup": "^8.5.1",
-		"typescript": "^6.0.3"
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.6"
 	}
 }
