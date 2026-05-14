@@ -63,7 +63,7 @@ function listExtensions() {
 const installCmd = styledCommand("install")
 	.alias("i")
 	.description("install an extension")
-	.argument("<name>", "extension to install (cursor, claude, codex)")
+	.argument("<name>", "extension to install (cursor, claude, codex, copilot)")
 	.option("-y, --yes", "skip confirmation")
 	.option("--dry-run", "preview commands without executing")
 	.action(async (name: string, opts) => {

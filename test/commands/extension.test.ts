@@ -70,6 +70,24 @@ describe("extension install --dry-run", () => {
 			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
 		}
 	});
+
+	it("shows commands for copilot", async () => {
+		await run(["install", "copilot", "--dry-run"]);
+
+		const copilot = stacks[3];
+		for (const cmd of copilot.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+
+	it("resolves alias ghcp to copilot", async () => {
+		await run(["install", "ghcp", "--dry-run"]);
+
+		const copilot = stacks[3];
+		for (const cmd of copilot.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
 });
 
 describe("extension install with confirmation", () => {
@@ -128,6 +146,7 @@ describe("extension install error handling", () => {
 		expect(errorCall).toContain("cursor");
 		expect(errorCall).toContain("claude");
 		expect(errorCall).toContain("cc");
+		expect(errorCall).toContain("copilot");
 	});
 
 	it("exits 1 when install fails", async () => {

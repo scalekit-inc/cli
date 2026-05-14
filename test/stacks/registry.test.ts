@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { findStack, stacks } from "../../src/stacks/registry.js";
 
 describe("stacks registry", () => {
-	it("exports exactly 3 stacks", () => {
-		expect(stacks).toHaveLength(3);
+	it("exports exactly 4 stacks", () => {
+		expect(stacks).toHaveLength(4);
 	});
 
-	it("contains cursor, claude, and codex", () => {
+	it("contains cursor, claude, codex, and copilot", () => {
 		const ids = stacks.map((s) => s.id);
-		expect(ids).toEqual(["cursor", "claude", "codex"]);
+		expect(ids).toEqual(["cursor", "claude", "codex", "copilot"]);
 	});
 
 	it("every stack has the required shape", () => {
@@ -68,8 +68,23 @@ describe("findStack", () => {
 		expect(findStack("CURSOR")?.id).toBe("cursor");
 	});
 
+	it("finds copilot by id", () => {
+		const result = findStack("copilot");
+		expect(result?.id).toBe("copilot");
+		expect(result?.name).toBe("GitHub Copilot");
+	});
+
+	it("finds copilot by alias ghcp", () => {
+		expect(findStack("ghcp")?.id).toBe("copilot");
+	});
+
+	it("finds copilot by alias github-copilot", () => {
+		expect(findStack("github-copilot")?.id).toBe("copilot");
+	});
+
 	it("is case-insensitive for aliases", () => {
 		expect(findStack("CC")?.id).toBe("claude");
 		expect(findStack("OpenCode")?.id).toBe("codex");
+		expect(findStack("GHCP")?.id).toBe("copilot");
 	});
 });

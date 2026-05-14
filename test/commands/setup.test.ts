@@ -60,10 +60,11 @@ describe("setup --dry-run --yes", () => {
 
 describe("setup --yes", () => {
 	it("installs all detected stacks", async () => {
-		const [cursor, claude, codex] = stacks;
+		const [cursor, claude, codex, copilot] = stacks;
 		vi.spyOn(cursor, "detect").mockReturnValue(true);
 		vi.spyOn(claude, "detect").mockReturnValue(true);
 		vi.spyOn(codex, "detect").mockReturnValue(false);
+		vi.spyOn(copilot, "detect").mockReturnValue(false);
 		for (const s of stacks) {
 			vi.spyOn(s, "install").mockResolvedValue();
 		}
@@ -73,6 +74,7 @@ describe("setup --yes", () => {
 		expect(cursor.install).toHaveBeenCalled();
 		expect(claude.install).toHaveBeenCalled();
 		expect(codex.install).not.toHaveBeenCalled();
+		expect(copilot.install).not.toHaveBeenCalled();
 	});
 
 	it("installs all stacks when none detected", async () => {
