@@ -20,6 +20,9 @@ importers:
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1
+      semver:
+        specifier: ^7.8.0
+        version: 7.8.0
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.15
@@ -27,6 +30,9 @@ importers:
       '@types/node':
         specifier: ^25.7.0
         version: 25.7.0
+      '@types/semver':
+        specifier: ^7.7.1
+        version: 7.7.1
       execa:
         specifier: ^9.6.1
         version: 9.6.1
@@ -752,6 +758,9 @@ packages:
 
   '@types/normalize-package-data@2.4.4':
     resolution: {integrity: sha512-37i+OaWTh9qeK4LSHPsyRC7NahnGotNuZvjLSgcPzblpHB3rrCJxAOgI5gCdKm7coonsaX1Of0ILiTcnZjbfxA==}
+
+  '@types/semver@7.7.1':
+    resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
 
   '@vitest/expect@4.1.6':
     resolution: {integrity: sha512-7EHDquPthALSV0jhhjgEW8FXaviMx7rSqu8W6oqCoAuOhKov814P99QDV1pxMA3QPv21YudvJngIhjrNI4opLg==}
@@ -2898,6 +2907,8 @@ snapshots:
       undici-types: 7.21.0
 
   '@types/normalize-package-data@2.4.4': {}
+
+  '@types/semver@7.7.1': {}
 
   '@vitest/expect@4.1.6':
     dependencies:
