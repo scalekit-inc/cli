@@ -69,11 +69,9 @@ jobs:
         run: npm install -g npm@11.5.1
 
       - name: Publish to npm
-        env:
-          NPM_CONFIG_PROVENANCE: false
         run: |
           if [ "${{ github.event.release.prerelease }}" = "true" ]; then
-            pnpm publish --no-git-checks --tag next --access public
+            pnpm publish --no-git-checks --tag next --access public --provenance
           else
-            pnpm publish --no-git-checks --tag latest --access public
+            pnpm publish --no-git-checks --tag latest --access public --provenance
           fi
