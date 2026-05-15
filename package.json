@@ -11,6 +11,10 @@
 		"bin",
 		"dist"
 	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/scalekit-inc/cli"
+	},
 	"engines": {
 		"node": ">=20"
 	},
