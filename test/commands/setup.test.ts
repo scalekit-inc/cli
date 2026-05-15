@@ -15,8 +15,8 @@ vi.mock("../../src/core/hooks.js", () => ({
 }));
 
 import { cancel, confirm, isCancel, log, multiselect } from "@clack/prompts";
-import { installHook } from "../../src/core/hooks.js";
 import { setupCommand } from "../../src/commands/setup.js";
+import { installHook } from "../../src/core/hooks.js";
 import { stacks } from "../../src/stacks/registry.js";
 
 const mockInstallHook = vi.mocked(installHook);
@@ -213,10 +213,7 @@ describe("hook installation via setup", () => {
 
 		await run(["claude"]);
 
-		expect(mockInstallHook).toHaveBeenCalledWith(
-			expect.any(String),
-			"claude",
-		);
+		expect(mockInstallHook).toHaveBeenCalledWith(expect.any(String), "claude");
 	});
 
 	it("does NOT install hook during dry-run", async () => {

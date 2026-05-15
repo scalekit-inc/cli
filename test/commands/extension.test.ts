@@ -305,9 +305,7 @@ describe("extension status --hook", () => {
 		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
 			"process.exit(0)",
 		);
-		expect(spy).toHaveBeenCalledWith(
-			expect.stringContaining("outdated"),
-		);
+		expect(spy).toHaveBeenCalledWith(expect.stringContaining("outdated"));
 		spy.mockRestore();
 	});
 
@@ -322,15 +320,11 @@ describe("extension status --hook", () => {
 		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
 			"process.exit(0)",
 		);
-		expect(spy).toHaveBeenCalledWith(
-			expect.stringContaining("not installed"),
-		);
+		expect(spy).toHaveBeenCalledWith(expect.stringContaining("not installed"));
 		spy.mockRestore();
 	});
 
 	it("exits 0 silently without stack argument", async () => {
-		await expect(run(["status", "--hook"])).rejects.toThrow(
-			"process.exit(0)",
-		);
+		await expect(run(["status", "--hook"])).rejects.toThrow("process.exit(0)");
 	});
 });

@@ -3,9 +3,7 @@ import { cacheGet, cacheSet } from "./cache.js";
 
 const UNKNOWN: VersionStatus = { installed: false, status: "unknown" };
 
-export async function checkStackVersion(
-	stack: Stack,
-): Promise<VersionStatus> {
+export async function checkStackVersion(stack: Stack): Promise<VersionStatus> {
 	const cached = await cacheGet<VersionStatus>(stack.id);
 	if (cached) return cached;
 

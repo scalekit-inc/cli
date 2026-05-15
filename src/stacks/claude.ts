@@ -1,5 +1,5 @@
 import { execFileSync, spawn } from "node:child_process";
-import { readFile, readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import semver from "semver";

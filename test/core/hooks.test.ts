@@ -67,7 +67,8 @@ describe("installHook", () => {
 						hooks: [
 							{
 								type: "command",
-								command: 'node "/old/path/cli.js" extension status claude --hook',
+								command:
+									'node "/old/path/cli.js" extension status claude --hook',
 								timeout: 10,
 							},
 						],

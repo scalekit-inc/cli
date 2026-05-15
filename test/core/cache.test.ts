@@ -28,7 +28,10 @@ describe("cacheGet", () => {
 
 	it("returns value within TTL", async () => {
 		const data = {
-			claude: { value: { status: "outdated" }, checkedAt: new Date().toISOString() },
+			claude: {
+				value: { status: "outdated" },
+				checkedAt: new Date().toISOString(),
+			},
 		};
 		mockReadFile.mockResolvedValue(JSON.stringify(data));
 		expect(await cacheGet("claude")).toEqual({ status: "outdated" });
@@ -36,7 +39,9 @@ describe("cacheGet", () => {
 
 	it("returns undefined for expired entry", async () => {
 		const expired = new Date(Date.now() - 9 * 60 * 60 * 1000).toISOString();
-		const data = { claude: { value: { status: "outdated" }, checkedAt: expired } };
+		const data = {
+			claude: { value: { status: "outdated" }, checkedAt: expired },
+		};
 		mockReadFile.mockResolvedValue(JSON.stringify(data));
 		expect(await cacheGet("claude")).toBeUndefined();
 	});
@@ -65,9 +70,12 @@ describe("cacheSet", () => {
 		mockReadFile.mockRejectedValue(new Error("ENOENT"));
 		await cacheSet("claude", { status: "up_to_date" });
 
-		expect(mockMkdir).toHaveBeenCalledWith(expect.stringContaining(".scalekit"), {
-			recursive: true,
-		});
+		expect(mockMkdir).toHaveBeenCalledWith(
+			expect.stringContaining(".scalekit"),
+			{
+				recursive: true,
+			},
+		);
 		expect(mockWriteFile).toHaveBeenCalledTimes(1);
 		const written = JSON.parse(mockWriteFile.mock.calls[0][1] as string);
 		expect(written.claude.value).toEqual({ status: "up_to_date" });
@@ -76,7 +84,10 @@ describe("cacheSet", () => {
 
 	it("preserves existing entries", async () => {
 		const existing = {
-			cursor: { value: { status: "unknown" }, checkedAt: new Date().toISOString() },
+			cursor: {
+				value: { status: "unknown" },
+				checkedAt: new Date().toISOString(),
+			},
 		};
 		mockReadFile.mockResolvedValue(JSON.stringify(existing));
 		await cacheSet("claude", { status: "outdated" });

@@ -54,7 +54,9 @@ describe("checkStackVersion", () => {
 			latestVersion: "2.0.0",
 			status: "outdated",
 		};
-		const stack = fakeStack({ checkVersion: vi.fn().mockResolvedValue(status) });
+		const stack = fakeStack({
+			checkVersion: vi.fn().mockResolvedValue(status),
+		});
 
 		const result = await checkStackVersion(stack);
 

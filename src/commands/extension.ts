@@ -4,7 +4,7 @@ import pc from "picocolors";
 import { styledCommand } from "../core/help.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
 import { checkStackVersion } from "../core/version-check.js";
-import { findStack, type VersionStatus, stacks } from "../stacks/registry.js";
+import { findStack, stacks, type VersionStatus } from "../stacks/registry.js";
 
 function availableNames(): string[] {
 	return stacks.map((s) => {
@@ -169,9 +169,7 @@ async function showAllStatus(cmd: Command) {
 			? pc.dim(` (${stack.aliases.join(", ")})`)
 			: "";
 		const versionInfo = detected ? `  ${formatVersionStatus(vs)}` : "";
-		log.info(
-			`${pc.bold(stack.id)}${aliases}  ${detectedLabel}${versionInfo}`,
-		);
+		log.info(`${pc.bold(stack.id)}${aliases}  ${detectedLabel}${versionInfo}`);
 	}
 }
 
@@ -233,16 +231,17 @@ async function showSingleStatus(
 			process.exit(1);
 			break;
 		case "unknown":
-			log.info(
-				`${stack.name} auth stack: version check not available`,
-			);
+			log.info(`${stack.name} auth stack: version check not available`);
 			break;
 	}
 }
 
 const statusCmd = styledCommand("status")
 	.description("show plugin version status")
-	.argument("[stack]", "check a specific stack (claude, cursor, codex, copilot)")
+	.argument(
+		"[stack]",
+		"check a specific stack (claude, cursor, codex, copilot)",
+	)
 	.option("--hook", "hook mode: silent if healthy, message if outdated")
 	.action(async (stackId: string | undefined, opts, cmd: Command) => {
 		if (opts.hook && !stackId) {
