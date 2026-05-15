@@ -179,6 +179,43 @@ describe("--json flag", () => {
 	});
 });
 
+describe("--json flag position-independent", () => {
+	it("ext ls --json works (flag after subcommand)", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["ext", "ls", "--json"]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(Array.isArray(data)).toBe(true);
+		expect(data[0]).toHaveProperty("id");
+	});
+
+	it("setup cursor --dry-run --json works (flag at end)", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"setup",
+			"cursor",
+			"--dry-run",
+			"--json",
+		]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(data.id).toBe("cursor");
+		expect(data.status).toBe("dry_run");
+	});
+
+	it("ext i cursor --dry-run --json works (flag at end)", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"ext",
+			"i",
+			"cursor",
+			"--dry-run",
+			"--json",
+		]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(data.extension).toBe("cursor");
+		expect(data.status).toBe("dry_run");
+	});
+});
+
 describe("--non-interactive flag", () => {
 	it("setup --non-interactive --dry-run skips prompts", async () => {
 		const { exitCode, cleanStdout } = await runCLI([

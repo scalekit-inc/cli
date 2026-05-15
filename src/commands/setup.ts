@@ -9,6 +9,7 @@ import {
 } from "@clack/prompts";
 import type { Command } from "commander";
 import { styledCommand } from "../core/help.js";
+import { installHook } from "../core/hooks.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
 import { findStack, type Stack, stacks } from "../stacks/registry.js";
 
@@ -52,6 +53,14 @@ async function runStack(
 
 	try {
 		await stack.install();
+		if (stack.hookSupported) {
+			try {
+				await installHook(process.argv[1], stack.id);
+				if (!json) log.info("Installed version-check hook");
+			} catch {
+				// Hook install is best-effort
+			}
+		}
 		return { id: stack.id, name: stack.name, status: "installed" };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);

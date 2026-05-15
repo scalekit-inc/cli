@@ -1,6 +1,6 @@
 {
 	"name": "@scalekit-inc/cli",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"description": "Scalekit CLI",
 	"type": "module",
 	"bin": {
@@ -40,11 +40,13 @@
 		"@clack/prompts": "^1.4.0",
 		"cfonts": "^3.3.1",
 		"commander": "^14.0.3",
-		"picocolors": "^1.1.1"
+		"picocolors": "^1.1.1",
+		"semver": "^7.8.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.15",
 		"@types/node": "^25.7.0",
+		"@types/semver": "^7.7.1",
 		"execa": "^9.6.1",
 		"np": "^11.2.0",
 		"publint": "^0.3.20",

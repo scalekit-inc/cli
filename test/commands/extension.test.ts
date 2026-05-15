@@ -3,15 +3,29 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@clack/prompts", () => ({
 	intro: vi.fn(),
 	outro: vi.fn(),
-	log: { info: vi.fn(), step: vi.fn(), success: vi.fn(), error: vi.fn() },
+	log: {
+		info: vi.fn(),
+		step: vi.fn(),
+		success: vi.fn(),
+		error: vi.fn(),
+		warn: vi.fn(),
+	},
 	confirm: vi.fn(),
 	cancel: vi.fn(),
 	isCancel: vi.fn(() => false),
 }));
 
+vi.mock("../../src/core/version-check.js", () => ({
+	checkStackVersion: vi.fn(),
+}));
+
 import { cancel, confirm, isCancel, log } from "@clack/prompts";
 import { extensionCommand } from "../../src/commands/extension.js";
+import { checkStackVersion } from "../../src/core/version-check.js";
+import type { VersionStatus } from "../../src/stacks/registry.js";
 import { stacks } from "../../src/stacks/registry.js";
+
+const mockCheckStackVersion = vi.mocked(checkStackVersion);
 
 const mockLog = vi.mocked(log);
 const mockConfirm = vi.mocked(confirm);
@@ -180,5 +194,137 @@ describe("extension list", () => {
 		const claudeCall = calls.find((c) => c.includes("claude"));
 		expect(claudeCall).toContain("cc");
 		expect(claudeCall).toContain("claude-code");
+	});
+});
+
+describe("extension status", () => {
+	beforeEach(() => {
+		stubStacks({ detect: true });
+	});
+
+	it("shows version info for all stacks", async () => {
+		const upToDate: VersionStatus = {
+			installed: true,
+			installedVersion: "2.0.0",
+			latestVersion: "2.0.0",
+			status: "up_to_date",
+		};
+		mockCheckStackVersion.mockResolvedValue(upToDate);
+
+		await run(["status"]);
+
+		expect(mockLog.info).toHaveBeenCalledTimes(stacks.length);
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("up to date"))).toBe(true);
+	});
+
+	it("shows single stack status", async () => {
+		const upToDate: VersionStatus = {
+			installed: true,
+			installedVersion: "2.0.0",
+			latestVersion: "2.0.0",
+			status: "up_to_date",
+		};
+		mockCheckStackVersion.mockResolvedValue(upToDate);
+
+		await run(["status", "claude"]);
+
+		expect(mockLog.success).toHaveBeenCalledWith(
+			expect.stringContaining("up to date"),
+		);
+	});
+
+	it("shows outdated status with update hint", async () => {
+		const outdated: VersionStatus = {
+			installed: true,
+			installedVersion: "1.8.2",
+			latestVersion: "2.0.0",
+			status: "outdated",
+		};
+		mockCheckStackVersion.mockResolvedValue(outdated);
+
+		await expect(run(["status", "claude"])).rejects.toThrow("process.exit(1)");
+		expect(mockLog.warn).toHaveBeenCalledWith(
+			expect.stringContaining("outdated"),
+		);
+	});
+
+	it("shows not installed status", async () => {
+		const notInstalled: VersionStatus = {
+			installed: false,
+			status: "not_installed",
+		};
+		mockCheckStackVersion.mockResolvedValue(notInstalled);
+
+		await expect(run(["status", "claude"])).rejects.toThrow("process.exit(1)");
+		expect(mockLog.warn).toHaveBeenCalledWith(
+			expect.stringContaining("not installed"),
+		);
+	});
+
+	it("exits 1 for unknown stack", async () => {
+		await expect(run(["status", "nope"])).rejects.toThrow("process.exit(1)");
+		expect(mockLog.error).toHaveBeenCalledWith(
+			expect.stringContaining('Unknown stack "nope"'),
+		);
+	});
+});
+
+describe("extension status --hook", () => {
+	beforeEach(() => {
+		stubStacks({ detect: true });
+	});
+
+	it("is silent when up to date", async () => {
+		const upToDate: VersionStatus = {
+			installed: true,
+			installedVersion: "2.0.0",
+			latestVersion: "2.0.0",
+			status: "up_to_date",
+		};
+		mockCheckStackVersion.mockResolvedValue(upToDate);
+		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
+			"process.exit(0)",
+		);
+		expect(spy).not.toHaveBeenCalled();
+		spy.mockRestore();
+	});
+
+	it("outputs message when outdated", async () => {
+		const outdated: VersionStatus = {
+			installed: true,
+			installedVersion: "1.8.2",
+			latestVersion: "2.0.0",
+			status: "outdated",
+		};
+		mockCheckStackVersion.mockResolvedValue(outdated);
+		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
+			"process.exit(0)",
+		);
+		expect(spy).toHaveBeenCalledWith(expect.stringContaining("outdated"));
+		spy.mockRestore();
+	});
+
+	it("outputs message when not installed", async () => {
+		const notInstalled: VersionStatus = {
+			installed: false,
+			status: "not_installed",
+		};
+		mockCheckStackVersion.mockResolvedValue(notInstalled);
+		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
+			"process.exit(0)",
+		);
+		expect(spy).toHaveBeenCalledWith(expect.stringContaining("not installed"));
+		spy.mockRestore();
+	});
+
+	it("exits 0 silently without stack argument", async () => {
+		await expect(run(["status", "--hook"])).rejects.toThrow("process.exit(0)");
 	});
 });
