@@ -23,8 +23,7 @@ const program = styledCommand("scalekit")
 	.option("--plain", "disable colors and styling (also respects NO_COLOR env)")
 	.option("--json", "output machine-readable JSON")
 	.option("-y, --non-interactive", "skip all prompts, use defaults")
-	.enablePositionalOptions()
-	.passThroughOptions()
+
 	.addHelpCommand(false);
 
 program.addCommand(extensionCommand);
