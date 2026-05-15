@@ -300,13 +300,18 @@ describe("extension status --hook", () => {
 			status: "outdated",
 		};
 		mockCheckStackVersion.mockResolvedValue(outdated);
-		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const writeSpy = vi
+			.spyOn(process.stdout, "write")
+			.mockImplementation(() => true);
 
 		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
 			"process.exit(0)",
 		);
-		expect(spy).toHaveBeenCalledWith(expect.stringContaining("outdated"));
-		spy.mockRestore();
+		expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining("outdated"));
+		expect(writeSpy).toHaveBeenCalledWith(
+			expect.stringContaining("npx @scalekit-inc/cli setup"),
+		);
+		writeSpy.mockRestore();
 	});
 
 	it("outputs message when not installed", async () => {
@@ -315,13 +320,20 @@ describe("extension status --hook", () => {
 			status: "not_installed",
 		};
 		mockCheckStackVersion.mockResolvedValue(notInstalled);
-		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
+		const writeSpy = vi
+			.spyOn(process.stdout, "write")
+			.mockImplementation(() => true);
 
 		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
 			"process.exit(0)",
 		);
-		expect(spy).toHaveBeenCalledWith(expect.stringContaining("not installed"));
-		spy.mockRestore();
+		expect(writeSpy).toHaveBeenCalledWith(
+			expect.stringContaining("not installed"),
+		);
+		expect(writeSpy).toHaveBeenCalledWith(
+			expect.stringContaining("npx @scalekit-inc/cli setup"),
+		);
+		writeSpy.mockRestore();
 	});
 
 	it("exits 0 silently without stack argument", async () => {

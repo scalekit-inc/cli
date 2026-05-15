@@ -193,12 +193,12 @@ async function showSingleStatus(
 
 	if (opts.hook) {
 		if (vs.status === "outdated") {
-			console.log(
-				`Your Scalekit auth plugin for ${stack.name} is outdated (v${vs.installedVersion} → v${vs.latestVersion}). Run \`scalekit setup ${stack.id}\` to update.`,
+			process.stdout.write(
+				`SCALEKIT PLUGIN UPDATE AVAILABLE: The Scalekit auth plugin for ${stack.name} is outdated (installed: v${vs.installedVersion}, latest: v${vs.latestVersion}). Inform the user and suggest they run \`npx @scalekit-inc/cli setup ${stack.id}\` to update to the latest version.`,
 			);
 		} else if (vs.status === "not_installed") {
-			console.log(
-				`The Scalekit auth plugin for ${stack.name} is not installed. Run \`scalekit setup ${stack.id}\` to install it.`,
+			process.stdout.write(
+				`SCALEKIT PLUGIN NOT INSTALLED: The Scalekit auth plugin for ${stack.name} is not installed. Inform the user and suggest they run \`npx @scalekit-inc/cli setup ${stack.id}\` to install it.`,
 			);
 		}
 		process.exit(0);
