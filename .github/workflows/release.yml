@@ -1,53 +1,77 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version bump (patch, minor, major)"
-        required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # Required for npm provenance (OIDC)
 
 jobs:
   publish:
+    name: Publish to npm
     runs-on: ubuntu-latest
     environment: Release
-    permissions:
-      contents: write
-      id-token: write
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
-          registry-url: "https://registry.npmjs.org"
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-      - run: pnpm publint
-
-      - name: Configure git
+      - name: Validate tag matches package.json version
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)."
+            exit 1
+          fi
 
-      - name: Bump version
-        run: npm version ${{ inputs.version }} -m "release: v%s"
+      - name: Validate version is not already published on npm
+        run: |
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view "$PKG_NAME@$PKG_VERSION" version 2>/dev/null; then
+            echo "Version $PKG_VERSION is already published on npm. Bump the version before releasing."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint package
+        run: pnpm publint
+
+      - name: Verify no uncommitted build artifacts
+        run: |
+          git diff --exit-code
+          untracked="$(git ls-files --others --exclude-standard)"
+          if [ -n "$untracked" ]; then
+            echo "Untracked build artifacts detected — commit all generated output before releasing:"
+            echo "$untracked"
+            exit 1
+          fi
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@11.5.1
 
       - name: Publish to npm
-        run: pnpm publish --no-git-checks
-
-      - name: Push tag
-        run: git push --follow-tags
+        run: |
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            pnpm publish --no-git-checks --tag next --access public --provenance
+          else
+            pnpm publish --no-git-checks --tag latest --access public --provenance
+          fi
