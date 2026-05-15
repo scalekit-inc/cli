@@ -77,8 +77,6 @@ export const claudeStack: Stack = {
 	description: "Scalekit auth plugins for Claude Code",
 	aliases: ["claude-code", "cc"],
 	commands: CMDS,
-	hookSupported: true,
-
 	detect() {
 		try {
 			execFileSync(

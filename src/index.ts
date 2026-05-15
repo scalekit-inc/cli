@@ -19,7 +19,7 @@ function showBanner() {
 
 const program = styledCommand("scalekit")
 	.description("Auth stack for the agentic era")
-	.version("0.3.1")
+	.version("0.3.5")
 	.option("--plain", "disable colors and styling (also respects NO_COLOR env)")
 	.option("--json", "output machine-readable JSON")
 	.option("-y, --non-interactive", "skip all prompts, use defaults")
