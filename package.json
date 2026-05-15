@@ -28,8 +28,7 @@
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"publint": "publint",
-		"prepublishOnly": "npm run test && npm run build && npm run publint",
-		"release": "np --no-tests"
+		"prepublishOnly": "npm run test && npm run build && npm run publint"
 	},
 	"keywords": [
 		"scalekit",
@@ -52,7 +51,6 @@
 		"@types/node": "^25.7.0",
 		"@types/semver": "^7.7.1",
 		"execa": "^9.6.1",
-		"np": "^11.2.0",
 		"publint": "^0.3.20",
 		"strip-ansi": "^7.2.0",
 		"tsup": "^8.5.1",
