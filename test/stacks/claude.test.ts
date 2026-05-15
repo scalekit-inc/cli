@@ -7,8 +7,17 @@ vi.mock("node:child_process", () => ({
 	spawn: vi.fn(),
 }));
 
+vi.mock("node:fs/promises", () => ({
+	readdir: vi.fn(),
+	readFile: vi.fn(),
+}));
+
 import { execFileSync, spawn } from "node:child_process";
+import { readFile, readdir } from "node:fs/promises";
 import { claudeStack } from "../../src/stacks/claude.js";
+
+const mockReaddir = vi.mocked(readdir);
+const mockReadFile = vi.mocked(readFile);
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockSpawn = vi.mocked(spawn);
@@ -56,5 +65,100 @@ describe("claudeStack.install", () => {
 		mockSpawn.mockReturnValue(child);
 		setTimeout(() => child.emit("error", new Error("spawn failed")), 0);
 		await expect(claudeStack.install()).rejects.toThrow("spawn failed");
+	});
+});
+
+describe("claudeStack.checkVersion", () => {
+	const settingsWithRepo = JSON.stringify({
+		extraKnownMarketplaces: {
+			"scalekit-auth-stack": {
+				source: { repo: "saif-at-scalekit/claude-code-authstack" },
+			},
+		},
+	});
+
+	const pluginJson = (version: string) =>
+		JSON.stringify({
+			content: Buffer.from(JSON.stringify({ version })).toString("base64"),
+		});
+
+	it("returns not_installed when plugin dir does not exist", async () => {
+		mockReaddir.mockRejectedValue(new Error("ENOENT"));
+		const result = await claudeStack.checkVersion!();
+		expect(result).toEqual({ installed: false, status: "not_installed" });
+	});
+
+	it("returns not_installed when dir has no valid semver entries", async () => {
+		mockReaddir.mockResolvedValue([".DS_Store", "tmp"] as unknown as Awaited<ReturnType<typeof readdir>>);
+		const result = await claudeStack.checkVersion!();
+		expect(result).toEqual({ installed: false, status: "not_installed" });
+	});
+
+	it("returns up_to_date when installed equals latest", async () => {
+		mockReaddir.mockResolvedValue(["2.0.0"] as unknown as Awaited<ReturnType<typeof readdir>>);
+		mockReadFile.mockResolvedValue(settingsWithRepo);
+		vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve(JSON.parse(pluginJson("2.0.0"))),
+		}));
+
+		const result = await claudeStack.checkVersion!();
+		expect(result.status).toBe("up_to_date");
+		expect(result.installedVersion).toBe("2.0.0");
+		expect(result.latestVersion).toBe("2.0.0");
+	});
+
+	it("returns outdated when installed < latest", async () => {
+		mockReaddir.mockResolvedValue(["1.8.2", "2.0.0"] as unknown as Awaited<ReturnType<typeof readdir>>);
+		mockReadFile.mockResolvedValue(settingsWithRepo);
+		vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve(JSON.parse(pluginJson("2.1.0"))),
+		}));
+
+		const result = await claudeStack.checkVersion!();
+		expect(result.status).toBe("outdated");
+		expect(result.installedVersion).toBe("2.0.0");
+		expect(result.latestVersion).toBe("2.1.0");
+	});
+
+	it("picks highest semver when multiple version dirs exist", async () => {
+		mockReaddir.mockResolvedValue(["1.8.2", "2.0.0", "1.9.0"] as unknown as Awaited<ReturnType<typeof readdir>>);
+		mockReadFile.mockResolvedValue(settingsWithRepo);
+		vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve(JSON.parse(pluginJson("2.0.0"))),
+		}));
+
+		const result = await claudeStack.checkVersion!();
+		expect(result.installedVersion).toBe("2.0.0");
+		expect(result.status).toBe("up_to_date");
+	});
+
+	it("returns unknown when GitHub API fails", async () => {
+		mockReaddir.mockResolvedValue(["2.0.0"] as unknown as Awaited<ReturnType<typeof readdir>>);
+		mockReadFile.mockResolvedValue(settingsWithRepo);
+		vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+
+		const result = await claudeStack.checkVersion!();
+		expect(result.status).toBe("unknown");
+		expect(result.installedVersion).toBe("2.0.0");
+	});
+
+	it("returns unknown when settings.json has no marketplace config", async () => {
+		mockReaddir.mockResolvedValue(["2.0.0"] as unknown as Awaited<ReturnType<typeof readdir>>);
+		mockReadFile.mockResolvedValue(JSON.stringify({}));
+
+		const result = await claudeStack.checkVersion!();
+		expect(result.status).toBe("unknown");
+	});
+
+	it("returns unknown when fetch throws (network error)", async () => {
+		mockReaddir.mockResolvedValue(["2.0.0"] as unknown as Awaited<ReturnType<typeof readdir>>);
+		mockReadFile.mockResolvedValue(settingsWithRepo);
+		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network")));
+
+		const result = await claudeStack.checkVersion!();
+		expect(result.status).toBe("unknown");
 	});
 });

@@ -1,10 +1,62 @@
 import { execFileSync, spawn } from "node:child_process";
-import type { Stack } from "./registry.js";
+import { readFile, readdir } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import semver from "semver";
+import type { Stack, VersionStatus } from "./registry.js";
 
 const CMDS = [
 	"claude plugin marketplace add scalekit-inc/claude-code-authstack",
 	"claude plugin install agent-auth@scalekit-auth-stack",
 ];
+
+const MARKETPLACE_ID = "scalekit-auth-stack";
+const PLUGIN_NAME = "agent-auth";
+const PLUGIN_DIR = join(
+	homedir(),
+	".claude",
+	"plugins",
+	"cache",
+	MARKETPLACE_ID,
+	PLUGIN_NAME,
+);
+const SETTINGS_PATH = join(homedir(), ".claude", "settings.json");
+
+async function getInstalledVersion(): Promise<string | undefined> {
+	try {
+		const entries = await readdir(PLUGIN_DIR);
+		const versions = entries.filter((e) => semver.valid(e));
+		if (versions.length === 0) return undefined;
+		return semver.rsort(versions)[0];
+	} catch {
+		return undefined;
+	}
+}
+
+async function getLatestVersion(): Promise<string | undefined> {
+	try {
+		const raw = await readFile(SETTINGS_PATH, "utf-8");
+		const settings = JSON.parse(raw);
+		const repo =
+			settings?.extraKnownMarketplaces?.[MARKETPLACE_ID]?.source?.repo;
+		if (!repo) return undefined;
+
+		const url = `https://api.github.com/repos/${repo}/contents/plugins/${PLUGIN_NAME}/.claude-plugin/plugin.json`;
+		const res = await fetch(url, {
+			headers: { Accept: "application/vnd.github.v3+json" },
+		});
+		if (!res.ok) return undefined;
+
+		const body = (await res.json()) as { content?: string };
+		if (!body.content) return undefined;
+
+		const decoded = Buffer.from(body.content, "base64").toString("utf-8");
+		const pluginJson = JSON.parse(decoded) as { version?: string };
+		return pluginJson.version;
+	} catch {
+		return undefined;
+	}
+}
 
 export const claudeStack: Stack = {
 	id: "claude",
@@ -12,6 +64,7 @@ export const claudeStack: Stack = {
 	description: "Scalekit auth plugins for Claude Code",
 	aliases: ["claude-code", "cc"],
 	commands: CMDS,
+	hookSupported: true,
 
 	detect() {
 		try {
@@ -37,5 +90,29 @@ export const claudeStack: Stack = {
 				child.on("error", reject);
 			});
 		}
+	},
+
+	async checkVersion(): Promise<VersionStatus> {
+		const installedVersion = await getInstalledVersion();
+		if (!installedVersion) {
+			return { installed: false, status: "not_installed" };
+		}
+
+		const latestVersion = await getLatestVersion();
+		if (!latestVersion) {
+			return {
+				installed: true,
+				installedVersion,
+				status: "unknown",
+			};
+		}
+
+		const outdated = semver.lt(installedVersion, latestVersion);
+		return {
+			installed: true,
+			installedVersion,
+			latestVersion,
+			status: outdated ? "outdated" : "up_to_date",
+		};
 	},
 };
