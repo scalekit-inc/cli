@@ -33,6 +33,19 @@ async function getInstalledVersion(): Promise<string | undefined> {
 	}
 }
 
+async function resolvePluginPath(repo: string, name: string): Promise<string> {
+	const headers = { Accept: "application/vnd.github.v3+json" };
+	const res = await fetch(
+		`https://api.github.com/repos/${repo}/contents/plugins/${name}`,
+		{ headers },
+	);
+	if (!res.ok) return name;
+
+	const body = (await res.json()) as { type?: string; target?: string };
+	if (body.type === "symlink" && body.target) return body.target;
+	return name;
+}
+
 async function getLatestVersion(): Promise<string | undefined> {
 	try {
 		const raw = await readFile(SETTINGS_PATH, "utf-8");
@@ -41,10 +54,10 @@ async function getLatestVersion(): Promise<string | undefined> {
 			settings?.extraKnownMarketplaces?.[MARKETPLACE_ID]?.source?.repo;
 		if (!repo) return undefined;
 
-		const url = `https://api.github.com/repos/${repo}/contents/plugins/${PLUGIN_NAME}/.claude-plugin/plugin.json`;
-		const res = await fetch(url, {
-			headers: { Accept: "application/vnd.github.v3+json" },
-		});
+		const resolvedName = await resolvePluginPath(repo, PLUGIN_NAME);
+		const url = `https://api.github.com/repos/${repo}/contents/plugins/${resolvedName}/.claude-plugin/plugin.json`;
+		const headers = { Accept: "application/vnd.github.v3+json" };
+		const res = await fetch(url, { headers });
 		if (!res.ok) return undefined;
 
 		const body = (await res.json()) as { content?: string };

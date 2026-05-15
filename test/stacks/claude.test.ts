@@ -77,10 +77,30 @@ describe("claudeStack.checkVersion", () => {
 		},
 	});
 
-	const pluginJson = (version: string) =>
-		JSON.stringify({
-			content: Buffer.from(JSON.stringify({ version })).toString("base64"),
-		});
+	const pluginJsonResponse = (version: string) => ({
+		content: Buffer.from(JSON.stringify({ version })).toString("base64"),
+	});
+
+	// Symlink resolution response (first fetch call)
+	const symlinkResponse = (target: string) => ({
+		ok: true,
+		json: () => Promise.resolve({ type: "symlink", target }),
+	});
+
+	// Plugin.json content response (second fetch call)
+	const contentResponse = (version: string) => ({
+		ok: true,
+		json: () => Promise.resolve(pluginJsonResponse(version)),
+	});
+
+	function stubFetchWithSymlink(version: string, target = "agentkit") {
+		const mockFetch = vi
+			.fn()
+			.mockResolvedValueOnce(symlinkResponse(target))
+			.mockResolvedValueOnce(contentResponse(version));
+		vi.stubGlobal("fetch", mockFetch);
+		return mockFetch;
+	}
 
 	it("returns not_installed when plugin dir does not exist", async () => {
 		mockReaddir.mockRejectedValue(new Error("ENOENT"));
@@ -96,23 +116,20 @@ describe("claudeStack.checkVersion", () => {
 		expect(result).toEqual({ installed: false, status: "not_installed" });
 	});
 
-	it("returns up_to_date when installed equals latest", async () => {
+	it("resolves symlink and returns up_to_date", async () => {
 		mockReaddir.mockResolvedValue(["2.0.0"] as unknown as Awaited<
 			ReturnType<typeof readdir>
 		>);
 		mockReadFile.mockResolvedValue(settingsWithRepo);
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				json: () => Promise.resolve(JSON.parse(pluginJson("2.0.0"))),
-			}),
-		);
+		const mockFetch = stubFetchWithSymlink("2.0.0");
 
 		const result = await claudeStack.checkVersion?.();
 		expect(result.status).toBe("up_to_date");
 		expect(result.installedVersion).toBe("2.0.0");
 		expect(result.latestVersion).toBe("2.0.0");
+		// First call resolves symlink, second fetches plugin.json via resolved path
+		expect(mockFetch).toHaveBeenCalledTimes(2);
+		expect(mockFetch.mock.calls[1][0]).toContain("agentkit");
 	});
 
 	it("returns outdated when installed < latest", async () => {
@@ -120,13 +137,7 @@ describe("claudeStack.checkVersion", () => {
 			ReturnType<typeof readdir>
 		>);
 		mockReadFile.mockResolvedValue(settingsWithRepo);
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				json: () => Promise.resolve(JSON.parse(pluginJson("2.1.0"))),
-			}),
-		);
+		stubFetchWithSymlink("2.1.0");
 
 		const result = await claudeStack.checkVersion?.();
 		expect(result.status).toBe("outdated");
@@ -141,20 +152,50 @@ describe("claudeStack.checkVersion", () => {
 			"1.9.0",
 		] as unknown as Awaited<ReturnType<typeof readdir>>);
 		mockReadFile.mockResolvedValue(settingsWithRepo);
-		vi.stubGlobal(
-			"fetch",
-			vi.fn().mockResolvedValue({
-				ok: true,
-				json: () => Promise.resolve(JSON.parse(pluginJson("2.0.0"))),
-			}),
-		);
+		stubFetchWithSymlink("2.0.0");
 
 		const result = await claudeStack.checkVersion?.();
 		expect(result.installedVersion).toBe("2.0.0");
 		expect(result.status).toBe("up_to_date");
 	});
 
-	it("returns unknown when GitHub API fails", async () => {
+	it("falls back to original name when symlink resolution fails", async () => {
+		mockReaddir.mockResolvedValue(["2.0.0"] as unknown as Awaited<
+			ReturnType<typeof readdir>
+		>);
+		mockReadFile.mockResolvedValue(settingsWithRepo);
+		const mockFetch = vi
+			.fn()
+			.mockResolvedValueOnce({ ok: false }) // symlink resolution fails
+			.mockResolvedValueOnce(contentResponse("2.0.0")); // falls back to agent-auth
+		vi.stubGlobal("fetch", mockFetch);
+
+		const result = await claudeStack.checkVersion?.();
+		expect(result.status).toBe("up_to_date");
+		expect(mockFetch.mock.calls[1][0]).toContain("agent-auth");
+	});
+
+	it("works when path is a directory (not a symlink)", async () => {
+		mockReaddir.mockResolvedValue(["2.0.0"] as unknown as Awaited<
+			ReturnType<typeof readdir>
+		>);
+		mockReadFile.mockResolvedValue(settingsWithRepo);
+		const mockFetch = vi
+			.fn()
+			.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ type: "dir" }),
+			})
+			.mockResolvedValueOnce(contentResponse("2.0.0"));
+		vi.stubGlobal("fetch", mockFetch);
+
+		const result = await claudeStack.checkVersion?.();
+		expect(result.status).toBe("up_to_date");
+		// Uses original name since it's a dir, not a symlink
+		expect(mockFetch.mock.calls[1][0]).toContain("agent-auth");
+	});
+
+	it("returns unknown when GitHub API fails on both calls", async () => {
 		mockReaddir.mockResolvedValue(["2.0.0"] as unknown as Awaited<
 			ReturnType<typeof readdir>
 		>);
