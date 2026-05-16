@@ -238,5 +238,3 @@ describe("next steps after setup", () => {
 		).toBe(true);
 	});
 });
-
-
