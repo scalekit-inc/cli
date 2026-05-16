@@ -176,6 +176,53 @@ describe("extension install error handling", () => {
 	});
 });
 
+describe("extension install next steps", () => {
+	it("shows next steps for claude after install", async () => {
+		const claude = stacks[1];
+		vi.spyOn(claude, "install").mockResolvedValue();
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["install", "claude"]);
+
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Next steps"),
+		);
+		for (const step of claude.nextSteps ?? []) {
+			expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(step));
+		}
+	});
+
+	it("shows next steps for copilot after install", async () => {
+		const copilot = stacks[3];
+		vi.spyOn(copilot, "install").mockResolvedValue();
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["install", "copilot"]);
+
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Next steps"),
+		);
+	});
+
+	it("does not show next steps for cursor (none defined)", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install").mockResolvedValue();
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["install", "cursor"]);
+
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("Next steps"))).toBe(false);
+	});
+
+	it("does not show next steps on dry-run", async () => {
+		await run(["install", "claude", "--dry-run"]);
+
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("Next steps"))).toBe(false);
+	});
+});
+
 describe("extension list", () => {
 	it("lists all stacks", async () => {
 		stubStacks({ detect: true });
@@ -267,64 +314,5 @@ describe("extension status", () => {
 		expect(mockLog.error).toHaveBeenCalledWith(
 			expect.stringContaining('Unknown stack "nope"'),
 		);
-	});
-});
-
-describe("extension status --hook", () => {
-	beforeEach(() => {
-		stubStacks({ detect: true });
-	});
-
-	it("is silent when up to date", async () => {
-		const upToDate: VersionStatus = {
-			installed: true,
-			installedVersion: "2.0.0",
-			latestVersion: "2.0.0",
-			status: "up_to_date",
-		};
-		mockCheckStackVersion.mockResolvedValue(upToDate);
-		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
-			"process.exit(0)",
-		);
-		expect(spy).not.toHaveBeenCalled();
-		spy.mockRestore();
-	});
-
-	it("outputs message when outdated", async () => {
-		const outdated: VersionStatus = {
-			installed: true,
-			installedVersion: "1.8.2",
-			latestVersion: "2.0.0",
-			status: "outdated",
-		};
-		mockCheckStackVersion.mockResolvedValue(outdated);
-		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
-			"process.exit(0)",
-		);
-		expect(spy).toHaveBeenCalledWith(expect.stringContaining("outdated"));
-		spy.mockRestore();
-	});
-
-	it("outputs message when not installed", async () => {
-		const notInstalled: VersionStatus = {
-			installed: false,
-			status: "not_installed",
-		};
-		mockCheckStackVersion.mockResolvedValue(notInstalled);
-		const spy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-		await expect(run(["status", "claude", "--hook"])).rejects.toThrow(
-			"process.exit(0)",
-		);
-		expect(spy).toHaveBeenCalledWith(expect.stringContaining("not installed"));
-		spy.mockRestore();
-	});
-
-	it("exits 0 silently without stack argument", async () => {
-		await expect(run(["status", "--hook"])).rejects.toThrow("process.exit(0)");
 	});
 });

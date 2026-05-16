@@ -69,9 +69,20 @@ async function installExtension(
 	try {
 		await stack.install();
 		if (json) {
-			jsonOut({ extension: stack.id, name: stack.name, status: "installed" });
+			jsonOut({
+				extension: stack.id,
+				name: stack.name,
+				status: "installed",
+				nextSteps: stack.nextSteps ?? [],
+			});
 		} else {
 			log.success(`${stack.name} — done`);
+			if (stack.nextSteps?.length) {
+				log.info(pc.bold("\nNext steps:"));
+				for (const step of stack.nextSteps) {
+					log.info(`  ${pc.dim("→")} ${step}`);
+				}
+			}
 		}
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -173,16 +184,11 @@ async function showAllStatus(cmd: Command) {
 	}
 }
 
-async function showSingleStatus(
-	stackId: string,
-	opts: { hook?: boolean },
-	cmd: Command,
-) {
+async function showSingleStatus(stackId: string, cmd: Command) {
 	const json = isJson(cmd);
 	const stack = findStack(stackId);
 
 	if (!stack) {
-		if (opts.hook) process.exit(0);
 		const ids = stacks.map((s) => s.id).join(", ");
 		if (json) jsonErr(`Unknown stack "${stackId}". Available: ${ids}`);
 		log.error(`Unknown stack "${stackId}". Available: ${ids}`);
@@ -190,19 +196,6 @@ async function showSingleStatus(
 	}
 
 	const vs = await checkStackVersion(stack);
-
-	if (opts.hook) {
-		if (vs.status === "outdated") {
-			console.log(
-				`Your Scalekit auth plugin for ${stack.name} is outdated (v${vs.installedVersion} → v${vs.latestVersion}). Run \`scalekit setup ${stack.id}\` to update.`,
-			);
-		} else if (vs.status === "not_installed") {
-			console.log(
-				`The Scalekit auth plugin for ${stack.name} is not installed. Run \`scalekit setup ${stack.id}\` to install it.`,
-			);
-		}
-		process.exit(0);
-	}
 
 	if (json) {
 		jsonOut({ stack: stack.id, name: stack.name, ...vs });
@@ -242,20 +235,11 @@ const statusCmd = styledCommand("status")
 		"[stack]",
 		"check a specific stack (claude, cursor, codex, copilot)",
 	)
-	.option("--hook", "hook mode: silent if healthy, message if outdated")
-	.action(async (stackId: string | undefined, opts, cmd: Command) => {
-		if (opts.hook && !stackId) {
-			process.exit(0);
-		}
-		try {
-			if (stackId) {
-				await showSingleStatus(stackId, opts, cmd);
-			} else {
-				await showAllStatus(cmd);
-			}
-		} catch {
-			if (opts.hook) process.exit(0);
-			throw undefined;
+	.action(async (stackId: string | undefined, _opts, cmd: Command) => {
+		if (stackId) {
+			await showSingleStatus(stackId, cmd);
+		} else {
+			await showAllStatus(cmd);
 		}
 	});
 

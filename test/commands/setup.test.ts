@@ -193,3 +193,46 @@ describe("setup with aliases", () => {
 		}
 	});
 });
+
+describe("next steps after setup", () => {
+	it("shows next steps for claude after direct setup", async () => {
+		const claude = stacks[1];
+		vi.spyOn(claude, "install").mockResolvedValue();
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["claude"]);
+
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Next steps"),
+		);
+		for (const step of claude.nextSteps ?? []) {
+			expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(step));
+		}
+	});
+
+	it("does not show next steps for cursor (none defined)", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install").mockResolvedValue();
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["cursor"]);
+
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("Next steps"))).toBe(false);
+	});
+
+	it("shows next steps in interactive setup", async () => {
+		stubStacks({ detect: true });
+		mockMultiselect.mockResolvedValue(["claude", "copilot"] as never);
+
+		await run([]);
+
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("Next steps for Claude Code"))).toBe(
+			true,
+		);
+		expect(calls.some((c) => c.includes("Next steps for GitHub Copilot"))).toBe(
+			true,
+		);
+	});
+});

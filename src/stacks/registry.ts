@@ -19,6 +19,7 @@ export interface Stack {
 	detect: () => boolean;
 	install: () => Promise<void>;
 	checkVersion?: () => Promise<VersionStatus>;
+	nextSteps?: string[];
 }
 
 export const stacks: Stack[] = [
