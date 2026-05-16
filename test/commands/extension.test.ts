@@ -187,10 +187,8 @@ describe("extension install next steps", () => {
 		expect(mockLog.info).toHaveBeenCalledWith(
 			expect.stringContaining("Next steps"),
 		);
-		for (const step of claude.nextSteps!) {
-			expect(mockLog.info).toHaveBeenCalledWith(
-				expect.stringContaining(step),
-			);
+		for (const step of claude.nextSteps ?? []) {
+			expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(step));
 		}
 	});
 
@@ -318,5 +316,3 @@ describe("extension status", () => {
 		);
 	});
 });
-
-

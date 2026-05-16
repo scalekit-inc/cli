@@ -205,10 +205,8 @@ describe("next steps after setup", () => {
 		expect(mockLog.info).toHaveBeenCalledWith(
 			expect.stringContaining("Next steps"),
 		);
-		for (const step of claude.nextSteps!) {
-			expect(mockLog.info).toHaveBeenCalledWith(
-				expect.stringContaining(step),
-			);
+		for (const step of claude.nextSteps ?? []) {
+			expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(step));
 		}
 	});
 
@@ -233,8 +231,8 @@ describe("next steps after setup", () => {
 		expect(calls.some((c) => c.includes("Next steps for Claude Code"))).toBe(
 			true,
 		);
-		expect(
-			calls.some((c) => c.includes("Next steps for GitHub Copilot")),
-		).toBe(true);
+		expect(calls.some((c) => c.includes("Next steps for GitHub Copilot"))).toBe(
+			true,
+		);
 	});
 });

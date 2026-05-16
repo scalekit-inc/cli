@@ -129,7 +129,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			.filter((s) => s.nextSteps?.length);
 		for (const stack of allNextSteps) {
 			log.info(pc.bold(`\nNext steps for ${stack.name}:`));
-			for (const step of stack.nextSteps!) {
+			for (const step of stack.nextSteps ?? []) {
 				log.info(`  ${pc.dim("→")} ${step}`);
 			}
 		}
