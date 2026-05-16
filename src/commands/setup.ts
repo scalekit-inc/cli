@@ -8,8 +8,8 @@ import {
 	outro,
 } from "@clack/prompts";
 import type { Command } from "commander";
+import pc from "picocolors";
 import { styledCommand } from "../core/help.js";
-import { installHook } from "../core/hooks.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
 import { findStack, type Stack, stacks } from "../stacks/registry.js";
 
@@ -53,14 +53,6 @@ async function runStack(
 
 	try {
 		await stack.install();
-		if (stack.hookSupported) {
-			try {
-				await installHook(process.argv[1], stack.id);
-				if (!json) log.info("Installed version-check hook");
-			} catch {
-				// Hook install is best-effort
-			}
-		}
 		return { id: stack.id, name: stack.name, status: "installed" };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -121,8 +113,26 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const failed = results.filter((r) => r.status === "failed").length;
 
 	if (json) {
-		jsonOut({ extensions: results, summary: { succeeded, failed } });
+		jsonOut({
+			extensions: results.map((r) => {
+				const stack = toInstall.find((s) => s.id === r.id);
+				return { ...r, nextSteps: stack?.nextSteps ?? [] };
+			}),
+			summary: { succeeded, failed },
+		});
 		return;
+	}
+
+	if (!opts.dryRun && failed === 0) {
+		const allNextSteps = toInstall
+			.filter((s) => results.find((r) => r.id === s.id)?.status === "installed")
+			.filter((s) => s.nextSteps?.length);
+		for (const stack of allNextSteps) {
+			log.info(pc.bold(`\nNext steps for ${stack.name}:`));
+			for (const step of stack.nextSteps!) {
+				log.info(`  ${pc.dim("→")} ${step}`);
+			}
+		}
 	}
 
 	if (opts.dryRun) {
@@ -167,7 +177,7 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 		if (result.status === "failed") {
 			jsonErr(`${stack.name} failed: ${result.error}`);
 		}
-		jsonOut(result);
+		jsonOut({ ...result, nextSteps: stack.nextSteps ?? [] });
 		return;
 	}
 
@@ -175,6 +185,12 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 		outro("Dry run — no commands were executed.");
 	} else if (result.status === "installed") {
 		log.success(`${stack.name} — done`);
+		if (stack.nextSteps?.length) {
+			log.info(pc.bold("\nNext steps:"));
+			for (const step of stack.nextSteps) {
+				log.info(`  ${pc.dim("→")} ${step}`);
+			}
+		}
 		outro(`${stack.name} auth stack installed.`);
 	} else {
 		process.exit(1);

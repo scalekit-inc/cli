@@ -13,6 +13,11 @@ export const copilotStack: Stack = {
 	description: "Scalekit auth plugins for GitHub Copilot",
 	aliases: ["github-copilot", "ghcp"],
 	commands: CMDS,
+	nextSteps: [
+		"Run `copilot` to start a session",
+		"To update later: `copilot plugin update agentkit@github-copilot-authstack`",
+		'Try: "Connect my Gmail account using Scalekit"',
+	],
 
 	detect() {
 		try {

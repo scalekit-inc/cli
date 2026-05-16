@@ -10,16 +10,9 @@ vi.mock("@clack/prompts", () => ({
 	isCancel: vi.fn(() => false),
 }));
 
-vi.mock("../../src/core/hooks.js", () => ({
-	installHook: vi.fn(),
-}));
-
 import { cancel, confirm, isCancel, log, multiselect } from "@clack/prompts";
 import { setupCommand } from "../../src/commands/setup.js";
-import { installHook } from "../../src/core/hooks.js";
 import { stacks } from "../../src/stacks/registry.js";
-
-const mockInstallHook = vi.mocked(installHook);
 
 const mockLog = vi.mocked(log);
 const mockMultiselect = vi.mocked(multiselect);
@@ -201,47 +194,49 @@ describe("setup with aliases", () => {
 	});
 });
 
-describe("hook installation via setup", () => {
-	beforeEach(() => {
-		mockInstallHook.mockResolvedValue();
-	});
-
-	it("installs hook after successful claude setup", async () => {
+describe("next steps after setup", () => {
+	it("shows next steps for claude after direct setup", async () => {
 		const claude = stacks[1];
 		vi.spyOn(claude, "install").mockResolvedValue();
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["claude"]);
 
-		expect(mockInstallHook).toHaveBeenCalledWith(expect.any(String), "claude");
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Next steps"),
+		);
+		for (const step of claude.nextSteps!) {
+			expect(mockLog.info).toHaveBeenCalledWith(
+				expect.stringContaining(step),
+			);
+		}
 	});
 
-	it("does NOT install hook during dry-run", async () => {
-		await run(["claude", "--dry-run"]);
-
-		expect(mockInstallHook).not.toHaveBeenCalled();
-	});
-
-	it("does NOT install hook for stacks without hookSupported", async () => {
+	it("does not show next steps for cursor (none defined)", async () => {
 		const cursor = stacks[0];
 		vi.spyOn(cursor, "install").mockResolvedValue();
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["cursor"]);
 
-		expect(mockInstallHook).not.toHaveBeenCalled();
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("Next steps"))).toBe(false);
 	});
 
-	it("succeeds even when hook install fails (best-effort)", async () => {
-		const claude = stacks[1];
-		vi.spyOn(claude, "install").mockResolvedValue();
-		mockConfirm.mockResolvedValue(true as never);
-		mockInstallHook.mockRejectedValue(new Error("hook failed"));
+	it("shows next steps in interactive setup", async () => {
+		stubStacks({ detect: true });
+		mockMultiselect.mockResolvedValue(["claude", "copilot"] as never);
 
-		await run(["claude"]);
+		await run([]);
 
-		expect(mockLog.success).toHaveBeenCalledWith(
-			expect.stringContaining("done"),
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("Next steps for Claude Code"))).toBe(
+			true,
 		);
+		expect(
+			calls.some((c) => c.includes("Next steps for GitHub Copilot")),
+		).toBe(true);
 	});
 });
+
+

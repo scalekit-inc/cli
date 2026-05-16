@@ -77,7 +77,11 @@ export const claudeStack: Stack = {
 	description: "Scalekit auth plugins for Claude Code",
 	aliases: ["claude-code", "cc"],
 	commands: CMDS,
-	hookSupported: true,
+	nextSteps: [
+		"Run `claude` to start a session",
+		"Enable auto-update: /plugins → Marketplace → scalekit-auth-stack → Enable auto-update",
+		'Try: "Connect my Gmail account using Scalekit"',
+	],
 
 	detect() {
 		try {
