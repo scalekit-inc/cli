@@ -7,11 +7,12 @@ import type { Stack, VersionStatus } from "./registry.js";
 
 const CMDS = [
 	"claude plugin marketplace add scalekit-inc/claude-code-authstack",
-	"claude plugin install agent-auth@scalekit-auth-stack",
+	"claude plugin install agentkit@scalekit-auth-stack",
+	"claude plugin install saaskit@scalekit-auth-stack",
 ];
 
 const MARKETPLACE_ID = "scalekit-auth-stack";
-const PLUGIN_NAME = "agent-auth";
+const PLUGIN_NAME = "agentkit";
 const PLUGIN_DIR = join(
 	homedir(),
 	".claude",

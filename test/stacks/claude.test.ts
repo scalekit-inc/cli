@@ -49,10 +49,10 @@ describe("claudeStack.detect", () => {
 });
 
 describe("claudeStack.install", () => {
-	it("resolves when both commands succeed", async () => {
+	it("resolves when all commands succeed", async () => {
 		fakeSpawn(0);
 		await expect(claudeStack.install()).resolves.toBeUndefined();
-		expect(mockSpawn).toHaveBeenCalledTimes(2);
+		expect(mockSpawn).toHaveBeenCalledTimes(3);
 	});
 
 	it("rejects when a command fails", async () => {
@@ -172,7 +172,7 @@ describe("claudeStack.checkVersion", () => {
 
 		const result = await claudeStack.checkVersion?.();
 		expect(result.status).toBe("up_to_date");
-		expect(mockFetch.mock.calls[1][0]).toContain("agent-auth");
+		expect(mockFetch.mock.calls[1][0]).toContain("agentkit");
 	});
 
 	it("works when path is a directory (not a symlink)", async () => {
@@ -192,7 +192,7 @@ describe("claudeStack.checkVersion", () => {
 		const result = await claudeStack.checkVersion?.();
 		expect(result.status).toBe("up_to_date");
 		// Uses original name since it's a dir, not a symlink
-		expect(mockFetch.mock.calls[1][0]).toContain("agent-auth");
+		expect(mockFetch.mock.calls[1][0]).toContain("agentkit");
 	});
 
 	it("returns unknown when GitHub API fails on both calls", async () => {
