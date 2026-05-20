@@ -12,7 +12,7 @@ import type { Command } from "commander";
 import pc from "picocolors";
 import { styledCommand } from "../core/help.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
-import { installSkills } from "../core/skills.js";
+import { installSkills, SKILLS_CMD } from "../core/skills.js";
 import { findStack, type Stack, stacks } from "../stacks/registry.js";
 
 interface SetupOpts {
@@ -63,6 +63,22 @@ async function runStack(
 			log.error(`${stack.name} failed: ${message}`);
 		}
 		return { id: stack.id, name: stack.name, status: "failed", error: message };
+	}
+}
+
+async function runSkillsInstall(): Promise<boolean> {
+	log.step("Installing skills...");
+	try {
+		await installSkills();
+		log.success("Skills installed.");
+		return true;
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		log.error(`Skills installation failed: ${message}`);
+		log.info(
+			`You can install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
+		);
+		return false;
 	}
 }
 
@@ -130,19 +146,13 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	}
 
 	// Install skills if selected
-	if (installSkillsSelected && !opts.dryRun) {
-		if (nonInteractive) {
-			log.step("Installing skills...");
-			try {
-				await installSkills(false);
-				log.success("Skills installed.");
-			} catch (err) {
-				const message = err instanceof Error ? err.message : String(err);
-				log.error(`Skills installation failed: ${message}`);
-				log.info(
-					`You can install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
-				);
-			}
+	let skillsInstalled = false;
+
+	if (installSkillsSelected) {
+		if (opts.dryRun) {
+			if (!json) log.info(`Would run: ${SKILLS_CMD}`);
+		} else if (nonInteractive) {
+			skillsInstalled = await runSkillsInstall();
 		} else {
 			const action = await select({
 				message: "How do you want to install skills?",
@@ -150,7 +160,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 					{
 						value: "auto",
 						label: "Install now",
-						hint: "runs npx skills add scalekit-inc/skills --yes",
+						hint: `runs ${SKILLS_CMD}`,
 					},
 					{
 						value: "manual",
@@ -161,20 +171,10 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			});
 
 			if (!isCancel(action) && action === "auto") {
-				log.step("Installing skills...");
-				try {
-					await installSkills(false);
-					log.success("Skills installed.");
-				} catch (err) {
-					const message = err instanceof Error ? err.message : String(err);
-					log.error(`Skills installation failed: ${message}`);
-					log.info(
-						`You can install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
-					);
-				}
+				skillsInstalled = await runSkillsInstall();
 			} else {
 				log.info("");
-				log.info(`Run this to install skills with the interactive wizard:`);
+				log.info("Run this to install skills with the interactive wizard:");
 				log.info(`  ${pc.cyan("npx skills add scalekit-inc/skills")}`);
 				log.info("");
 			}
@@ -207,11 +207,13 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		}
 	}
 
+	const total = succeeded + (skillsInstalled ? 1 : 0);
+
 	if (opts.dryRun) {
 		outro("Dry run complete — no commands were executed.");
 	} else if (failed === 0) {
 		outro(
-			`Setup complete! ${succeeded} stack${succeeded !== 1 ? "s" : ""} installed.`,
+			`Setup complete! ${total} component${total !== 1 ? "s" : ""} installed.`,
 		);
 	} else {
 		outro(`Done. ${succeeded} succeeded, ${failed} failed.`);

@@ -13,6 +13,7 @@ vi.mock("@clack/prompts", () => ({
 
 vi.mock("../../src/core/skills.js", () => ({
 	installSkills: vi.fn(() => Promise.resolve()),
+	SKILLS_CMD: "npx skills add scalekit-inc/skills --all",
 }));
 
 import {
@@ -258,7 +259,7 @@ describe("skills installation", () => {
 		stubStacks({ detect: true });
 		await run(["--yes"]);
 
-		expect(mockInstallSkills).toHaveBeenCalledWith(false);
+		expect(mockInstallSkills).toHaveBeenCalled();
 	});
 
 	it("--yes --skip-skills skips skills", async () => {
@@ -268,11 +269,14 @@ describe("skills installation", () => {
 		expect(mockInstallSkills).not.toHaveBeenCalled();
 	});
 
-	it("--dry-run skips skills even when selected", async () => {
+	it("--dry-run previews the skills command without running it", async () => {
 		stubStacks({ detect: true });
 		await run(["--dry-run", "--yes"]);
 
 		expect(mockInstallSkills).not.toHaveBeenCalled();
+		expect(mockLog.info).toHaveBeenCalledWith(
+			"Would run: npx skills add scalekit-inc/skills --all",
+		);
 	});
 
 	it("interactive: 'Install now' runs installSkills", async () => {
@@ -282,7 +286,7 @@ describe("skills installation", () => {
 
 		await run([]);
 
-		expect(mockInstallSkills).toHaveBeenCalledWith(false);
+		expect(mockInstallSkills).toHaveBeenCalled();
 		expect(mockLog.success).toHaveBeenCalledWith("Skills installed.");
 	});
 
@@ -349,5 +353,27 @@ describe("skills installation", () => {
 		expect(
 			infoCalls.some((c) => c.includes("npx skills add scalekit-inc/skills")),
 		).toBe(true);
+	});
+
+	it("outro counts skills in total when installed", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor", "skills"] as never);
+		mockSelect.mockResolvedValue("auto" as never);
+
+		await run([]);
+
+		const { outro } = await import("@clack/prompts");
+		expect(outro).toHaveBeenCalledWith("Setup complete! 2 components installed.");
+	});
+
+	it("outro says '1 component' when only skills installed", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["skills"] as never);
+		mockSelect.mockResolvedValue("auto" as never);
+
+		await run([]);
+
+		const { outro } = await import("@clack/prompts");
+		expect(outro).toHaveBeenCalledWith("Setup complete! 1 component installed.");
 	});
 });
