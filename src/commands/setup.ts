@@ -77,18 +77,34 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		log.info(`Detected: ${detected.map((s) => s.name).join(", ")}`);
 	}
 
+	const SKILLS_ID = "skills";
+
 	let toInstall: Stack[];
+	let installSkillsSelected = !opts.skipSkills;
 
 	if (nonInteractive) {
 		toInstall = detected.length > 0 ? detected : stacks;
 	} else {
+		const skillsOption = opts.skipSkills
+			? []
+			: [
+					{
+						value: SKILLS_ID,
+						label: "Scalekit Skills",
+						hint: "agent skills for all editors",
+					},
+				];
+
 		const selected = await multiselect({
-			message: "Which editors do you want to set up?",
-			options: stacks.map((s) => ({
-				value: s.id,
-				label: s.name,
-				hint: s.detect() ? "detected" : undefined,
-			})),
+			message: "What do you want to set up?",
+			options: [
+				...stacks.map((s) => ({
+					value: s.id,
+					label: s.name,
+					hint: s.detect() ? "detected" : undefined,
+				})),
+				...skillsOption,
+			],
 			required: true,
 		});
 
@@ -97,6 +113,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			process.exit(0);
 		}
 
+		installSkillsSelected = selected.includes(SKILLS_ID);
 		toInstall = stacks.filter((s) => selected.includes(s.id));
 	}
 
@@ -108,6 +125,21 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		results.push(result);
 		if (!json && result.status !== "failed") {
 			log.success(`${stack.name} — done`);
+		}
+	}
+
+	// Install skills if selected
+	if (installSkillsSelected && !opts.dryRun) {
+		log.step("Launching skills installer...");
+		try {
+			await installSkills(!nonInteractive);
+			log.success("Skills installed.");
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			log.error(`Skills installation failed: ${message}`);
+			log.info(
+				`You can install skills later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
+			);
 		}
 	}
 
@@ -123,33 +155,6 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			summary: { succeeded, failed },
 		});
 		return;
-	}
-
-	// Phase 2: Skills
-	if (!opts.skipSkills && !opts.dryRun && failed === 0) {
-		const shouldInstall = nonInteractive
-			? true
-			: await confirm({
-					message: "Install Scalekit skills for your agents?",
-				});
-
-		if (!isCancel(shouldInstall) && shouldInstall) {
-			log.step("Launching skills installer...");
-			try {
-				await installSkills(!nonInteractive);
-				log.success("Skills installed.");
-			} catch (err) {
-				const message = err instanceof Error ? err.message : String(err);
-				log.error(`Skills installation failed: ${message}`);
-				log.info(
-					`You can install skills later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
-				);
-			}
-		} else {
-			log.info(
-				`Skipped skills. Install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
-			);
-		}
 	}
 
 	if (!opts.dryRun && failed === 0) {
