@@ -363,7 +363,9 @@ describe("skills installation", () => {
 		await run([]);
 
 		const { outro } = await import("@clack/prompts");
-		expect(outro).toHaveBeenCalledWith("Setup complete! 2 components installed.");
+		expect(outro).toHaveBeenCalledWith(
+			"Setup complete! 2 components installed.",
+		);
 	});
 
 	it("outro says '1 component' when only skills installed", async () => {
@@ -374,6 +376,8 @@ describe("skills installation", () => {
 		await run([]);
 
 		const { outro } = await import("@clack/prompts");
-		expect(outro).toHaveBeenCalledWith("Setup complete! 1 component installed.");
+		expect(outro).toHaveBeenCalledWith(
+			"Setup complete! 1 component installed.",
+		);
 	});
 });
