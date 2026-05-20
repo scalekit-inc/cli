@@ -6,6 +6,7 @@ import {
 	log,
 	multiselect,
 	outro,
+	select,
 } from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
@@ -130,16 +131,53 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 
 	// Install skills if selected
 	if (installSkillsSelected && !opts.dryRun) {
-		log.step("Launching skills installer...");
-		try {
-			await installSkills(!nonInteractive);
-			log.success("Skills installed.");
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			log.error(`Skills installation failed: ${message}`);
-			log.info(
-				`You can install skills later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
-			);
+		if (nonInteractive) {
+			log.step("Installing skills...");
+			try {
+				await installSkills(false);
+				log.success("Skills installed.");
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				log.error(`Skills installation failed: ${message}`);
+				log.info(
+					`You can install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
+				);
+			}
+		} else {
+			const action = await select({
+				message: "How do you want to install skills?",
+				options: [
+					{
+						value: "auto",
+						label: "Install now",
+						hint: "runs npx skills add scalekit-inc/skills --yes",
+					},
+					{
+						value: "manual",
+						label: "I'll do it myself",
+						hint: "shows the command to run",
+					},
+				],
+			});
+
+			if (!isCancel(action) && action === "auto") {
+				log.step("Installing skills...");
+				try {
+					await installSkills(false);
+					log.success("Skills installed.");
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					log.error(`Skills installation failed: ${message}`);
+					log.info(
+						`You can install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
+					);
+				}
+			} else {
+				log.info("");
+				log.info(`Run this to install skills with the interactive wizard:`);
+				log.info(`  ${pc.cyan("npx skills add scalekit-inc/skills")}`);
+				log.info("");
+			}
 		}
 	}
 
