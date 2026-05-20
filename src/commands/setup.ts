@@ -11,11 +11,13 @@ import type { Command } from "commander";
 import pc from "picocolors";
 import { styledCommand } from "../core/help.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
+import { installSkills } from "../core/skills.js";
 import { findStack, type Stack, stacks } from "../stacks/registry.js";
 
 interface SetupOpts {
 	yes?: boolean;
 	dryRun?: boolean;
+	skipSkills?: boolean;
 }
 
 interface StackResult {
@@ -123,6 +125,33 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		return;
 	}
 
+	// Phase 2: Skills
+	if (!opts.skipSkills && !opts.dryRun && failed === 0) {
+		const shouldInstall = nonInteractive
+			? true
+			: await confirm({
+					message: "Install Scalekit skills for your agents?",
+				});
+
+		if (!isCancel(shouldInstall) && shouldInstall) {
+			log.step("Launching skills installer...");
+			try {
+				await installSkills(!nonInteractive);
+				log.success("Skills installed.");
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				log.error(`Skills installation failed: ${message}`);
+				log.info(
+					`You can install skills later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
+				);
+			}
+		} else {
+			log.info(
+				`Skipped skills. Install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
+			);
+		}
+	}
+
 	if (!opts.dryRun && failed === 0) {
 		const allNextSteps = toInstall
 			.filter((s) => results.find((r) => r.id === s.id)?.status === "installed")
@@ -213,6 +242,7 @@ export const setupCommand = styledCommand("setup")
 	.argument("[stack]", "cursor, claude, codex, copilot (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
+	.option("--skip-skills", "skip Scalekit skills installation")
 	.addCommand(setupExtensionShortcut)
 	.addHelpText(
 		"after",
@@ -222,7 +252,8 @@ Examples:
   $ scalekit setup cursor       set up Cursor directly (alias for setup extension cursor)
   $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
-  $ scalekit setup --dry-run    preview commands without running them`,
+  $ scalekit setup --dry-run    preview commands without running them
+  $ scalekit setup --skip-skills  set up editors only, skip skills`,
 	)
 	.action(
 		async (stackId: string | undefined, opts: SetupOpts, cmd: Command) => {

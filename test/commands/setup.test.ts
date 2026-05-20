@@ -10,6 +10,10 @@ vi.mock("@clack/prompts", () => ({
 	isCancel: vi.fn(() => false),
 }));
 
+vi.mock("../../src/core/skills.js", () => ({
+	installSkills: vi.fn(() => Promise.resolve()),
+}));
+
 import { cancel, confirm, isCancel, log, multiselect } from "@clack/prompts";
 import { setupCommand } from "../../src/commands/setup.js";
 import { stacks } from "../../src/stacks/registry.js";
@@ -224,6 +228,7 @@ describe("next steps after setup", () => {
 	it("shows next steps in interactive setup", async () => {
 		stubStacks({ detect: true });
 		mockMultiselect.mockResolvedValue(["claude", "copilot"] as never);
+		mockConfirm.mockResolvedValue(false as never);
 
 		await run([]);
 

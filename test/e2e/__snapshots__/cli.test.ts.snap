@@ -28,14 +28,16 @@ COMMANDS
   extension|ext  shortcut → extension install <name>
 
 OPTIONS
-  -y, --yes   skip confirmation prompts
-  --dry-run   show commands without executing
-  -h, --help  display help for command
+  -y, --yes      skip confirmation prompts
+  --dry-run      show commands without executing
+  --skip-skills  skip Scalekit skills installation
+  -h, --help     display help for command
 
 Examples:
   $ scalekit setup              interactive setup wizard
   $ scalekit setup cursor       set up Cursor directly (alias for setup extension cursor)
   $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
-  $ scalekit setup --dry-run    preview commands without running them"
+  $ scalekit setup --dry-run    preview commands without running them
+  $ scalekit setup --skip-skills  set up editors only, skip skills"
 `;
