@@ -90,8 +90,8 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			: [
 					{
 						value: SKILLS_ID,
-						label: "Scalekit Skills",
-						hint: "agent skills for all coding agents",
+						label: "Other agents",
+						hint: "Cline, Windsurf, Aider & more",
 					},
 				];
 
