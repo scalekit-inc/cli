@@ -11,7 +11,7 @@ const INSTALL_CMD = `curl -fsSL ${INSTALL_URL} | bash`;
 export const cursorStack: Stack = {
 	id: "cursor",
 	name: "Cursor",
-	description: "Scalekit auth plugins for Cursor editor",
+	description: "Scalekit auth plugins for Cursor",
 	commands: [INSTALL_CMD],
 
 	detect() {

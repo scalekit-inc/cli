@@ -91,7 +91,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 					{
 						value: SKILLS_ID,
 						label: "Scalekit Skills",
-						hint: "agent skills for all editors",
+						hint: "agent skills for all coding agents",
 					},
 				];
 
@@ -243,7 +243,7 @@ const setupExtensionShortcut = styledCommand("extension")
 	});
 
 export const setupCommand = styledCommand("setup")
-	.description("set up ScaleKit auth stacks for your editors")
+	.description("set up ScaleKit auth stacks for your coding agents")
 	.argument("[stack]", "cursor, claude, codex, copilot (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
@@ -258,7 +258,7 @@ Examples:
   $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
   $ scalekit setup --dry-run    preview commands without running them
-  $ scalekit setup --skip-skills  set up editors only, skip skills`,
+  $ scalekit setup --skip-skills  set up agents only, skip skills`,
 	)
 	.action(
 		async (stackId: string | undefined, opts: SetupOpts, cmd: Command) => {
