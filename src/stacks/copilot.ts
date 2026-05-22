@@ -7,12 +7,18 @@ const CMDS = [
 	"copilot plugin install saaskit@github-copilot-authstack",
 ];
 
+const UNINSTALL_CMDS = [
+	"copilot plugin uninstall saaskit@github-copilot-authstack",
+	"copilot plugin uninstall agentkit@github-copilot-authstack",
+];
+
 export const copilotStack: Stack = {
 	id: "copilot",
 	name: "GitHub Copilot",
 	description: "Scalekit auth plugins for GitHub Copilot",
 	aliases: ["github-copilot", "ghcp"],
 	commands: CMDS,
+	uninstallCommands: UNINSTALL_CMDS,
 	nextSteps: [
 		"Run `copilot` to start a session",
 		"To update later: `copilot plugin update agentkit@github-copilot-authstack`",
@@ -34,6 +40,19 @@ export const copilotStack: Stack = {
 
 	async install() {
 		for (const cmd of CMDS) {
+			await new Promise<void>((resolve, reject) => {
+				const child = spawn(cmd, { shell: true, stdio: "inherit" });
+				child.on("close", (code) => {
+					if (code === 0) resolve();
+					else reject(new Error(`"${cmd}" exited with code ${code}`));
+				});
+				child.on("error", reject);
+			});
+		}
+	},
+
+	async uninstall() {
+		for (const cmd of UNINSTALL_CMDS) {
 			await new Promise<void>((resolve, reject) => {
 				const child = spawn(cmd, { shell: true, stdio: "inherit" });
 				child.on("close", (code) => {

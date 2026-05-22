@@ -1,6 +1,7 @@
 import { cancel, confirm, isCancel, log } from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { cacheInvalidate } from "../core/cache.js";
 import { styledCommand } from "../core/help.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
 import { checkStackVersion } from "../core/version-check.js";
@@ -130,6 +131,99 @@ const installCmd = styledCommand("install")
 		await installExtension(name, opts, cmd);
 	});
 
+async function uninstallExtension(
+	name: string,
+	opts: { yes?: boolean; dryRun?: boolean },
+	cmd: Command,
+) {
+	const json = isJson(cmd);
+	const stack = findStack(name);
+
+	if (!stack) {
+		if (json) {
+			jsonErr(
+				`Unknown extension "${name}". Available: ${availableNames().join(", ")}`,
+			);
+		}
+		log.error(
+			`Unknown extension "${name}". Available: ${availableNames().join(", ")}`,
+		);
+		process.exit(1);
+	}
+
+	if (!stack.uninstall) {
+		if (json) {
+			jsonErr(`Uninstall is not supported for ${stack.name}.`);
+		}
+		log.error(`Uninstall is not supported for ${stack.name}.`);
+		process.exit(1);
+	}
+
+	if (opts.dryRun) {
+		if (json) {
+			jsonOut({
+				extension: stack.id,
+				name: stack.name,
+				status: "dry_run",
+				commands: stack.uninstallCommands ?? [],
+			});
+			return;
+		}
+		for (const cmd of stack.uninstallCommands ?? []) {
+			log.info(`Would run: ${cmd}`);
+		}
+		log.info("Dry run — no commands were executed.");
+		return;
+	}
+
+	if (!isNonInteractive(cmd)) {
+		const ok = await confirm({
+			message: `Uninstall ${stack.name} auth stack?`,
+		});
+		if (isCancel(ok) || !ok) {
+			cancel("Cancelled.");
+			process.exit(0);
+		}
+	}
+
+	if (!json) {
+		for (const cmd of stack.uninstallCommands ?? []) {
+			log.info(`$ ${cmd}`);
+		}
+	}
+
+	try {
+		await stack.uninstall();
+		await cacheInvalidate(stack.id);
+		if (json) {
+			jsonOut({
+				extension: stack.id,
+				name: stack.name,
+				status: "uninstalled",
+			});
+		} else {
+			log.success(`${stack.name} — uninstalled`);
+		}
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		if (json) {
+			jsonErr(`${stack.name} failed: ${message}`);
+		}
+		log.error(`${stack.name} failed: ${message}`);
+		process.exit(1);
+	}
+}
+
+const uninstallCmd = styledCommand("uninstall")
+	.alias("rm")
+	.description("uninstall an extension")
+	.argument("<name>", "extension to uninstall (cursor, claude, codex, copilot)")
+	.option("-y, --yes", "skip confirmation")
+	.option("--dry-run", "preview commands without executing")
+	.action(async (name: string, opts, cmd: Command) => {
+		await uninstallExtension(name, opts, cmd);
+	});
+
 const listCmd = styledCommand("list")
 	.alias("ls")
 	.description("list available extensions")
@@ -247,5 +341,6 @@ export const extensionCommand = styledCommand("extension")
 	.alias("ext")
 	.description("manage Scalekit extensions for coding tools")
 	.addCommand(installCmd)
+	.addCommand(uninstallCmd)
 	.addCommand(listCmd)
 	.addCommand(statusCmd);

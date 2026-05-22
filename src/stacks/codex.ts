@@ -1,9 +1,25 @@
 import { execFileSync, spawn } from "node:child_process";
+import { readFile, rm } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { Stack } from "./registry.js";
 
 const INSTALL_URL =
 	"https://raw.githubusercontent.com/scalekit-inc/codex-authstack/main/install.sh";
 const INSTALL_CMD = `curl -fsSL ${INSTALL_URL} | bash`;
+
+const MARKETPLACE_DIR = join(
+	homedir(),
+	".codex",
+	"marketplaces",
+	"scalekit-auth-stack",
+);
+const PERSONAL_MARKETPLACE = join(
+	homedir(),
+	".agents",
+	"plugins",
+	"marketplace.json",
+);
 
 export const codexStack: Stack = {
 	id: "codex",
@@ -11,6 +27,10 @@ export const codexStack: Stack = {
 	description: "Scalekit auth plugins for Codex / OpenCode",
 	aliases: ["opencode"],
 	commands: [INSTALL_CMD],
+	uninstallCommands: [
+		`rm -rf ${MARKETPLACE_DIR}`,
+		`rm -f ${PERSONAL_MARKETPLACE} (if owned by scalekit-auth-stack)`,
+	],
 
 	detect() {
 		try {
@@ -37,5 +57,18 @@ export const codexStack: Stack = {
 			});
 			child.on("error", reject);
 		});
+	},
+
+	async uninstall() {
+		await rm(MARKETPLACE_DIR, { recursive: true, force: true });
+		try {
+			const raw = await readFile(PERSONAL_MARKETPLACE, "utf-8");
+			const data = JSON.parse(raw) as { name?: string };
+			if (data.name === "scalekit-auth-stack") {
+				await rm(PERSONAL_MARKETPLACE, { force: true });
+			}
+		} catch {
+			// marketplace.json doesn't exist or isn't ours — skip
+		}
 	},
 };
