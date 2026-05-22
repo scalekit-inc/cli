@@ -16,10 +16,13 @@ export interface Stack {
 	description: string;
 	aliases?: string[];
 	commands: string[];
+	uninstallCommands?: string[];
 	detect: () => boolean;
 	install: () => Promise<void>;
+	uninstall?: () => Promise<void>;
 	checkVersion?: () => Promise<VersionStatus>;
 	nextSteps?: string[];
+	tryItNow?: string;
 }
 
 export const stacks: Stack[] = [

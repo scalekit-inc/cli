@@ -38,6 +38,7 @@ describe("extension E2E", () => {
 		expect(cleanStdout).toContain("USAGE");
 		expect(cleanStdout).toContain("COMMANDS");
 		expect(cleanStdout).toContain("install|i");
+		expect(cleanStdout).toContain("uninstall|rm");
 		expect(cleanStdout).toContain("list|ls");
 	});
 
@@ -88,6 +89,29 @@ describe("extension E2E", () => {
 		const output = cleanStdout + cleanStderr;
 		expect(output).toContain("Unknown extension");
 	});
+
+	it("ext rm claude --dry-run shows uninstall commands", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"ext",
+			"rm",
+			"claude",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("uninstall");
+	});
+
+	it("ext rm unknown exits with error", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI([
+			"ext",
+			"rm",
+			"unknown",
+		]);
+		expect(exitCode).not.toBe(0);
+		const output = cleanStdout + cleanStderr;
+		expect(output).toContain("Unknown extension");
+	});
 });
 
 describe("--json flag", () => {
@@ -125,6 +149,34 @@ describe("--json flag", () => {
 			"--json",
 			"ext",
 			"i",
+			"unknown",
+		]);
+		expect(exitCode).not.toBe(0);
+		const data = JSON.parse(cleanStderr);
+		expect(data.error).toContain("Unknown extension");
+	});
+
+	it("ext rm claude --json --dry-run outputs JSON with dry_run status", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"--json",
+			"ext",
+			"rm",
+			"claude",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(data.extension).toBe("claude");
+		expect(data.status).toBe("dry_run");
+		expect(data.commands).toBeDefined();
+		expect(Array.isArray(data.commands)).toBe(true);
+	});
+
+	it("ext rm unknown --json outputs JSON error to stderr", async () => {
+		const { exitCode, cleanStderr } = await runCLI([
+			"--json",
+			"ext",
+			"rm",
 			"unknown",
 		]);
 		expect(exitCode).not.toBe(0);

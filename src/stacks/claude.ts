@@ -11,6 +11,11 @@ const CMDS = [
 	"claude plugin install saaskit@scalekit-auth-stack",
 ];
 
+const UNINSTALL_CMDS = [
+	"claude plugin uninstall saaskit@scalekit-auth-stack",
+	"claude plugin uninstall agentkit@scalekit-auth-stack",
+];
+
 const MARKETPLACE_ID = "scalekit-auth-stack";
 const PLUGIN_NAME = "agentkit";
 const PLUGIN_DIR = join(
@@ -78,11 +83,12 @@ export const claudeStack: Stack = {
 	description: "Scalekit auth plugins for Claude Code",
 	aliases: ["claude-code", "cc"],
 	commands: CMDS,
+	uninstallCommands: UNINSTALL_CMDS,
 	nextSteps: [
 		"Run `claude` to start a session",
 		"Enable auto-update: /plugins → Marketplace → scalekit-auth-stack → Enable auto-update",
-		'Try: "Connect my Gmail account using Scalekit"',
 	],
+	tryItNow: 'claude "Analyze my project and suggest how Scalekit can power it"',
 
 	detect() {
 		try {
@@ -106,6 +112,16 @@ export const claudeStack: Stack = {
 					else reject(new Error(`"${cmd}" exited with code ${code}`));
 				});
 				child.on("error", reject);
+			});
+		}
+	},
+
+	async uninstall() {
+		for (const cmd of UNINSTALL_CMDS) {
+			await new Promise<void>((resolve) => {
+				const child = spawn(cmd, { shell: true, stdio: "inherit" });
+				child.on("close", () => resolve());
+				child.on("error", () => resolve());
 			});
 		}
 	},

@@ -196,13 +196,24 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	}
 
 	if (!opts.dryRun && failed === 0) {
-		const allNextSteps = toInstall
-			.filter((s) => results.find((r) => r.id === s.id)?.status === "installed")
-			.filter((s) => s.nextSteps?.length);
+		const installed = toInstall.filter(
+			(s) => results.find((r) => r.id === s.id)?.status === "installed",
+		);
+
+		const allNextSteps = installed.filter((s) => s.nextSteps?.length);
 		for (const stack of allNextSteps) {
 			log.info(pc.bold(`\nNext steps for ${stack.name}:`));
 			for (const step of stack.nextSteps ?? []) {
 				log.info(`  ${pc.dim("→")} ${step}`);
+			}
+		}
+
+		const tryIt = installed.filter((s) => s.tryItNow);
+		if (tryIt.length > 0) {
+			log.info("");
+			log.info(pc.bold("Try it now:"));
+			for (const stack of tryIt) {
+				log.info(`  ${pc.dim("$")} ${pc.cyan(stack.tryItNow ?? "")}`);
 			}
 		}
 	}
@@ -251,7 +262,11 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 		if (result.status === "failed") {
 			jsonErr(`${stack.name} failed: ${result.error}`);
 		}
-		jsonOut({ ...result, nextSteps: stack.nextSteps ?? [] });
+		jsonOut({
+			...result,
+			nextSteps: stack.nextSteps ?? [],
+			tryItNow: stack.tryItNow,
+		});
 		return;
 	}
 
@@ -264,6 +279,11 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 			for (const step of stack.nextSteps) {
 				log.info(`  ${pc.dim("→")} ${step}`);
 			}
+		}
+		if (stack.tryItNow) {
+			log.info("");
+			log.info(pc.bold("Try it now:"));
+			log.info(`  ${pc.dim("$")} ${pc.cyan(stack.tryItNow)}`);
 		}
 		outro(`${stack.name} auth stack installed.`);
 	} else {
