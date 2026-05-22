@@ -213,7 +213,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			log.info("");
 			log.info(pc.bold("Try it now:"));
 			for (const stack of tryIt) {
-				log.info(`  ${pc.dim("$")} ${pc.cyan(stack.tryItNow!)}`);
+				log.info(`  ${pc.dim("$")} ${pc.cyan(stack.tryItNow ?? "")}`);
 			}
 		}
 	}
@@ -262,7 +262,11 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 		if (result.status === "failed") {
 			jsonErr(`${stack.name} failed: ${result.error}`);
 		}
-		jsonOut({ ...result, nextSteps: stack.nextSteps ?? [], tryItNow: stack.tryItNow });
+		jsonOut({
+			...result,
+			nextSteps: stack.nextSteps ?? [],
+			tryItNow: stack.tryItNow,
+		});
 		return;
 	}
 

@@ -23,7 +23,8 @@ export const copilotStack: Stack = {
 		"Run `copilot` to start a session",
 		"To update later: `copilot plugin update agentkit@github-copilot-authstack`",
 	],
-	tryItNow: 'copilot -i "Analyze my project and suggest how Scalekit can power it"',
+	tryItNow:
+		'copilot -i "Analyze my project and suggest how Scalekit can power it"',
 
 	detect() {
 		try {

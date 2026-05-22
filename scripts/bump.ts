@@ -42,7 +42,7 @@ const next = bumpVersion(current, type);
 for (const path of files) {
 	const json = JSON.parse(readFileSync(path, "utf-8"));
 	json.version = next;
-	writeFileSync(path, JSON.stringify(json, null, "\t") + "\n");
+	writeFileSync(path, `${JSON.stringify(json, null, "\t")}\n`);
 }
 
 console.log(`${current} → ${next}`);
