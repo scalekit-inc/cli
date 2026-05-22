@@ -118,13 +118,10 @@ export const claudeStack: Stack = {
 
 	async uninstall() {
 		for (const cmd of UNINSTALL_CMDS) {
-			await new Promise<void>((resolve, reject) => {
+			await new Promise<void>((resolve) => {
 				const child = spawn(cmd, { shell: true, stdio: "inherit" });
-				child.on("close", (code) => {
-					if (code === 0) resolve();
-					else reject(new Error(`"${cmd}" exited with code ${code}`));
-				});
-				child.on("error", reject);
+				child.on("close", () => resolve());
+				child.on("error", () => resolve());
 			});
 		}
 	},

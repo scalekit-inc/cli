@@ -29,7 +29,7 @@ export const codexStack: Stack = {
 	commands: [INSTALL_CMD],
 	uninstallCommands: [
 		`rm -rf ${MARKETPLACE_DIR}`,
-		`rm -f ${PERSONAL_MARKETPLACE} (if owned by scalekit-auth-stack)`,
+		`rm -f ${PERSONAL_MARKETPLACE}`,
 	],
 
 	nextSteps: [

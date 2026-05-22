@@ -1,6 +1,6 @@
 {
 	"name": "@scalekit-inc/cli",
-	"version": "0.3.11",
+	"version": "0.3.12",
 	"description": "Scalekit CLI",
 	"type": "module",
 	"bin": {
