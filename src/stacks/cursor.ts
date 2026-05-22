@@ -21,7 +21,7 @@ const PLUGIN_NAMES = [
 export const cursorStack: Stack = {
 	id: "cursor",
 	name: "Cursor",
-	description: "Scalekit auth plugins for Cursor editor",
+	description: "Scalekit auth plugins for Cursor",
 	commands: [INSTALL_CMD],
 	uninstallCommands: PLUGIN_NAMES.map(
 		(name) => `rm -rf ${join(PLUGIN_DIR, name)}`,

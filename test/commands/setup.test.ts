@@ -5,19 +5,35 @@ vi.mock("@clack/prompts", () => ({
 	outro: vi.fn(),
 	log: { info: vi.fn(), step: vi.fn(), success: vi.fn(), error: vi.fn() },
 	multiselect: vi.fn(),
+	select: vi.fn(),
 	confirm: vi.fn(),
 	cancel: vi.fn(),
 	isCancel: vi.fn(() => false),
 }));
 
-import { cancel, confirm, isCancel, log, multiselect } from "@clack/prompts";
+vi.mock("../../src/core/skills.js", () => ({
+	installSkills: vi.fn(() => Promise.resolve()),
+	SKILLS_CMD: "npx skills add scalekit-inc/skills --all",
+}));
+
+import {
+	cancel,
+	confirm,
+	isCancel,
+	log,
+	multiselect,
+	select,
+} from "@clack/prompts";
 import { setupCommand } from "../../src/commands/setup.js";
+import { installSkills } from "../../src/core/skills.js";
 import { stacks } from "../../src/stacks/registry.js";
 
 const mockLog = vi.mocked(log);
 const mockMultiselect = vi.mocked(multiselect);
+const mockSelect = vi.mocked(select);
 const mockConfirm = vi.mocked(confirm);
 const mockIsCancel = vi.mocked(isCancel);
+const mockInstallSkills = vi.mocked(installSkills);
 
 function stubStacks(opts: { detect?: boolean; installError?: Error } = {}) {
 	for (const stack of stacks) {
@@ -224,6 +240,7 @@ describe("next steps after setup", () => {
 	it("shows next steps in interactive setup", async () => {
 		stubStacks({ detect: true });
 		mockMultiselect.mockResolvedValue(["claude", "copilot"] as never);
+		mockConfirm.mockResolvedValue(false as never);
 
 		await run([]);
 
@@ -233,6 +250,134 @@ describe("next steps after setup", () => {
 		);
 		expect(calls.some((c) => c.includes("Next steps for GitHub Copilot"))).toBe(
 			true,
+		);
+	});
+});
+
+describe("skills installation", () => {
+	it("--yes installs skills automatically", async () => {
+		stubStacks({ detect: true });
+		await run(["--yes"]);
+
+		expect(mockInstallSkills).toHaveBeenCalled();
+	});
+
+	it("--yes --skip-skills skips skills", async () => {
+		stubStacks({ detect: true });
+		await run(["--yes", "--skip-skills"]);
+
+		expect(mockInstallSkills).not.toHaveBeenCalled();
+	});
+
+	it("--dry-run previews the skills command without running it", async () => {
+		stubStacks({ detect: true });
+		await run(["--dry-run", "--yes"]);
+
+		expect(mockInstallSkills).not.toHaveBeenCalled();
+		expect(mockLog.info).toHaveBeenCalledWith(
+			"Would run: npx skills add scalekit-inc/skills --all",
+		);
+	});
+
+	it("interactive: 'Install now' runs installSkills", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor", "skills"] as never);
+		mockSelect.mockResolvedValue("auto" as never);
+
+		await run([]);
+
+		expect(mockInstallSkills).toHaveBeenCalled();
+		expect(mockLog.success).toHaveBeenCalledWith("Skills installed.");
+	});
+
+	it("interactive: 'I'll do it myself' shows the command", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor", "skills"] as never);
+		mockSelect.mockResolvedValue("manual" as never);
+
+		await run([]);
+
+		expect(mockInstallSkills).not.toHaveBeenCalled();
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(
+			calls.some((c) => c.includes("npx skills add scalekit-inc/skills")),
+		).toBe(true);
+	});
+
+	it("interactive: not selecting skills skips installation", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor"] as never);
+
+		await run([]);
+
+		expect(mockInstallSkills).not.toHaveBeenCalled();
+	});
+
+	it("multiselect includes 'Other agents' option", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor"] as never);
+
+		await run([]);
+
+		const call = mockMultiselect.mock.calls[0][0] as {
+			options: { value: string; label: string }[];
+		};
+		const skillsOpt = call.options.find((o) => o.value === "skills");
+		expect(skillsOpt).toBeDefined();
+		expect(skillsOpt?.label).toBe("Other agents");
+	});
+
+	it("--skip-skills hides skills from multiselect", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor"] as never);
+
+		await run(["--skip-skills"]);
+
+		const call = mockMultiselect.mock.calls[0][0] as {
+			options: { value: string; label: string }[];
+		};
+		const skillsOpt = call.options.find((o) => o.value === "skills");
+		expect(skillsOpt).toBeUndefined();
+	});
+
+	it("handles skills installation failure gracefully", async () => {
+		stubStacks({ detect: true });
+		mockInstallSkills.mockRejectedValueOnce(new Error("network error"));
+
+		await run(["--yes"]);
+
+		expect(mockLog.error).toHaveBeenCalledWith(
+			"Skills installation failed: network error",
+		);
+		const infoCalls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(
+			infoCalls.some((c) => c.includes("npx skills add scalekit-inc/skills")),
+		).toBe(true);
+	});
+
+	it("outro counts skills in total when installed", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor", "skills"] as never);
+		mockSelect.mockResolvedValue("auto" as never);
+
+		await run([]);
+
+		const { outro } = await import("@clack/prompts");
+		expect(outro).toHaveBeenCalledWith(
+			"Setup complete! 2 components installed.",
+		);
+	});
+
+	it("outro says '1 component' when only skills installed", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["skills"] as never);
+		mockSelect.mockResolvedValue("auto" as never);
+
+		await run([]);
+
+		const { outro } = await import("@clack/prompts");
+		expect(outro).toHaveBeenCalledWith(
+			"Setup complete! 1 component installed.",
 		);
 	});
 });
