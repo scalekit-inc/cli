@@ -64,6 +64,8 @@ export const cursorStack: Stack = {
 		});
 	},
 
+	tryItNow: 'Open Cursor → ⌘L → Ask: "Analyze my project and suggest how Scalekit can power it"',
+
 	async uninstall() {
 		for (const name of PLUGIN_NAMES) {
 			await rm(join(PLUGIN_DIR, name), { recursive: true, force: true });

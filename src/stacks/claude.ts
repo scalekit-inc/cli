@@ -87,8 +87,8 @@ export const claudeStack: Stack = {
 	nextSteps: [
 		"Run `claude` to start a session",
 		"Enable auto-update: /plugins → Marketplace → scalekit-auth-stack → Enable auto-update",
-		'Try: "Connect my Gmail account using Scalekit"',
 	],
+	tryItNow: 'claude "Analyze my project and suggest how Scalekit can power it"',
 
 	detect() {
 		try {

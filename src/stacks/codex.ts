@@ -32,6 +32,11 @@ export const codexStack: Stack = {
 		`rm -f ${PERSONAL_MARKETPLACE} (if owned by scalekit-auth-stack)`,
 	],
 
+	nextSteps: [
+		"Run `codex mcp login scalekit` to authenticate",
+	],
+	tryItNow: 'codex "Analyze my project and suggest how Scalekit can power it"',
+
 	detect() {
 		try {
 			execFileSync(

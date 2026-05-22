@@ -22,8 +22,8 @@ export const copilotStack: Stack = {
 	nextSteps: [
 		"Run `copilot` to start a session",
 		"To update later: `copilot plugin update agentkit@github-copilot-authstack`",
-		'Try: "Connect my Gmail account using Scalekit"',
 	],
+	tryItNow: 'copilot -i "Analyze my project and suggest how Scalekit can power it"',
 
 	detect() {
 		try {

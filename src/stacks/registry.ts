@@ -22,6 +22,7 @@ export interface Stack {
 	uninstall?: () => Promise<void>;
 	checkVersion?: () => Promise<VersionStatus>;
 	nextSteps?: string[];
+	tryItNow?: string;
 }
 
 export const stacks: Stack[] = [
