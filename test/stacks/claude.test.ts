@@ -71,7 +71,7 @@ describe("claudeStack.install", () => {
 describe("claudeStack.checkVersion", () => {
 	const settingsWithRepo = JSON.stringify({
 		extraKnownMarketplaces: {
-			authstack: {
+			"scalekit-authstack": {
 				source: { repo: "scalekit-inc/authstack" },
 			},
 		},
