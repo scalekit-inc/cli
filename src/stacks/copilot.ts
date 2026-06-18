@@ -2,9 +2,9 @@ import { execFileSync, spawn } from "node:child_process";
 import type { Stack } from "./registry.js";
 
 const CMDS = [
-	"copilot plugin marketplace add scalekit-inc/github-copilot-authstack",
-	"copilot plugin install agentkit@github-copilot-authstack",
-	"copilot plugin install saaskit@github-copilot-authstack",
+	"copilot plugin marketplace add scalekit-inc/authstack",
+	"copilot plugin install agentkit@authstack",
+	"copilot plugin install saaskit@authstack",
 ];
 
 export const copilotStack: Stack = {
@@ -15,7 +15,7 @@ export const copilotStack: Stack = {
 	commands: CMDS,
 	nextSteps: [
 		"Run `copilot` to start a session",
-		"To update later: `copilot plugin update agentkit@github-copilot-authstack`",
+		"To update later: `copilot plugin update agentkit@authstack`",
 		'Try: "Connect my Gmail account using Scalekit"',
 	],
 
