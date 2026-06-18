@@ -7,11 +7,11 @@ import type { Stack, VersionStatus } from "./registry.js";
 
 const CMDS = [
 	"claude plugin marketplace add scalekit-inc/authstack",
-	"claude plugin install agentkit@scalekit-authstack",
-	"claude plugin install saaskit@scalekit-authstack",
+	"claude plugin install agentkit@authstack",
+	"claude plugin install saaskit@authstack",
 ];
 
-const MARKETPLACE_ID = "scalekit-authstack";
+const MARKETPLACE_ID = "authstack";
 const PLUGIN_NAME = "agentkit";
 const PLUGIN_DIR = join(
 	homedir(),
@@ -80,7 +80,7 @@ export const claudeStack: Stack = {
 	commands: CMDS,
 	nextSteps: [
 		"Run `claude` to start a session",
-		"Enable auto-update: /plugins → Marketplace → scalekit-authstack → Enable auto-update",
+		"Enable auto-update: /plugins → Marketplace → authstack → Enable auto-update",
 		'Try: "Connect my Gmail account using Scalekit"',
 	],
 
