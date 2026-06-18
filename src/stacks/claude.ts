@@ -6,17 +6,18 @@ import semver from "semver";
 import type { Stack, VersionStatus } from "./registry.js";
 
 const CMDS = [
-	"claude plugin marketplace add scalekit-inc/claude-code-authstack",
-	"claude plugin install agentkit@scalekit-auth-stack",
-	"claude plugin install saaskit@scalekit-auth-stack",
+	"claude plugin marketplace add scalekit-inc/authstack",
+	"claude plugin install agentkit@authstack",
+	"claude plugin install saaskit@authstack",
 ];
 
 const UNINSTALL_CMDS = [
-	"claude plugin uninstall saaskit@scalekit-auth-stack",
-	"claude plugin uninstall agentkit@scalekit-auth-stack",
+	"claude plugin uninstall agentkit@authstack",
+	"claude plugin uninstall saaskit@authstack",
+	"claude plugin marketplace remove authstack",
 ];
 
-const MARKETPLACE_ID = "scalekit-auth-stack";
+const MARKETPLACE_ID = "authstack";
 const PLUGIN_NAME = "agentkit";
 const PLUGIN_DIR = join(
 	homedir(),
@@ -42,7 +43,7 @@ async function getInstalledVersion(): Promise<string | undefined> {
 async function resolvePluginPath(repo: string, name: string): Promise<string> {
 	const headers = { Accept: "application/vnd.github.v3+json" };
 	const res = await fetch(
-		`https://api.github.com/repos/${repo}/contents/plugins/${name}`,
+		`https://api.github.com/repos/${repo}/contents/kits/${name}`,
 		{ headers },
 	);
 	if (!res.ok) return name;
@@ -61,7 +62,7 @@ async function getLatestVersion(): Promise<string | undefined> {
 		if (!repo) return undefined;
 
 		const resolvedName = await resolvePluginPath(repo, PLUGIN_NAME);
-		const url = `https://api.github.com/repos/${repo}/contents/plugins/${resolvedName}/.claude-plugin/plugin.json`;
+		const url = `https://api.github.com/repos/${repo}/contents/kits/${resolvedName}/.claude-plugin/plugin.json`;
 		const headers = { Accept: "application/vnd.github.v3+json" };
 		const res = await fetch(url, { headers });
 		if (!res.ok) return undefined;
@@ -86,7 +87,8 @@ export const claudeStack: Stack = {
 	uninstallCommands: UNINSTALL_CMDS,
 	nextSteps: [
 		"Run `claude` to start a session",
-		"Enable auto-update: /plugins → Marketplace → scalekit-auth-stack → Enable auto-update",
+		"Enable auto-update: /plugins → Marketplace → authstack → Enable auto-update",
+		'Try: "Connect my Gmail account using Scalekit"',
 	],
 	tryItNow: 'claude "Analyze my project and suggest how Scalekit can power it"',
 
@@ -118,10 +120,13 @@ export const claudeStack: Stack = {
 
 	async uninstall() {
 		for (const cmd of UNINSTALL_CMDS) {
-			await new Promise<void>((resolve) => {
+			await new Promise<void>((resolve, reject) => {
 				const child = spawn(cmd, { shell: true, stdio: "inherit" });
-				child.on("close", () => resolve());
-				child.on("error", () => resolve());
+				child.on("close", (code) => {
+					if (code === 0) resolve();
+					else reject(new Error(`"${cmd}" exited with code ${code}`));
+				});
+				child.on("error", reject);
 			});
 		}
 	},

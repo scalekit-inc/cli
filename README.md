@@ -54,6 +54,14 @@ scalekit setup claude -y            # or: sk setup cc -y
 scalekit setup copilot --dry-run    # or: sk setup ghcp --dry-run
 ```
 
+### Uninstall
+
+```bash
+scalekit extension uninstall cursor
+scalekit extension uninstall claude -y   # skip confirmation
+scalekit ext rm codex -y
+```
+
 ### Extension commands
 
 For scriptable, noun-verb access:
@@ -61,7 +69,9 @@ For scriptable, noun-verb access:
 ```bash
 scalekit extension install cursor    # or: ext i cursor
 scalekit extension install cc        # alias for claude
+scalekit extension uninstall cursor  # or: ext rm cursor
 scalekit extension list              # or: ext ls
+scalekit extension status            # check all versions
 ```
 
 > [!TIP]
@@ -69,12 +79,12 @@ scalekit extension list              # or: ext ls
 
 ## Supported tools
 
-| Tool | ID | Aliases | Install method |
-|------|----|---------|----------------|
-| [Cursor](https://cursor.com) | `cursor` | — | Bootstrap script |
-| [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) | `claude` | `claude-code`, `cc` | Plugin commands |
-| [Codex](https://openai.com/index/introducing-codex/) | `codex` | `opencode` | Bootstrap script |
-| [GitHub Copilot](https://github.com/features/copilot) | `copilot` | `github-copilot`, `ghcp` | Plugin commands |
+| Tool | ID | Aliases |
+|------|----|---------|
+| [Cursor](https://cursor.com) | `cursor` | — |
+| [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) | `claude` | `claude-code`, `cc` |
+| [Codex](https://openai.com/index/introducing-codex/) | `codex` | `opencode` |
+| [GitHub Copilot](https://github.com/features/copilot) | `copilot` | `github-copilot`, `ghcp` |
 
 ## Command reference
 
@@ -82,8 +92,11 @@ scalekit extension list              # or: ext ls
 scalekit                              show help
 scalekit setup                        interactive setup wizard
 scalekit setup <tool>                 set up a specific tool
-scalekit extension install <id>       install by id or alias  (alias: ext i)
+
+scalekit extension install <id>       install by id or alias    (alias: ext i)
+scalekit extension uninstall <id>     uninstall by id or alias  (alias: ext rm)
 scalekit extension list               list available extensions  (alias: ext ls)
+scalekit extension status [id]        check installed version
 ```
 
 ### Global flags

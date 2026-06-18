@@ -2,14 +2,15 @@ import { execFileSync, spawn } from "node:child_process";
 import type { Stack } from "./registry.js";
 
 const CMDS = [
-	"copilot plugin marketplace add scalekit-inc/github-copilot-authstack",
-	"copilot plugin install agentkit@github-copilot-authstack",
-	"copilot plugin install saaskit@github-copilot-authstack",
+	"copilot plugin marketplace add scalekit-inc/authstack",
+	"copilot plugin install agentkit@authstack",
+	"copilot plugin install saaskit@authstack",
 ];
 
 const UNINSTALL_CMDS = [
-	"copilot plugin uninstall saaskit@github-copilot-authstack",
-	"copilot plugin uninstall agentkit@github-copilot-authstack",
+	"copilot plugin uninstall agentkit@authstack",
+	"copilot plugin uninstall saaskit@authstack",
+	"copilot plugin marketplace remove authstack",
 ];
 
 export const copilotStack: Stack = {
@@ -21,7 +22,8 @@ export const copilotStack: Stack = {
 	uninstallCommands: UNINSTALL_CMDS,
 	nextSteps: [
 		"Run `copilot` to start a session",
-		"To update later: `copilot plugin update agentkit@github-copilot-authstack`",
+		"To update later: `copilot plugin update agentkit@authstack`",
+		'Try: "Connect my Gmail account using Scalekit"',
 	],
 	tryItNow:
 		'copilot -i "Analyze my project and suggest how Scalekit can power it"',
@@ -54,10 +56,13 @@ export const copilotStack: Stack = {
 
 	async uninstall() {
 		for (const cmd of UNINSTALL_CMDS) {
-			await new Promise<void>((resolve) => {
+			await new Promise<void>((resolve, reject) => {
 				const child = spawn(cmd, { shell: true, stdio: "inherit" });
-				child.on("close", () => resolve());
-				child.on("error", () => resolve());
+				child.on("close", (code) => {
+					if (code === 0) resolve();
+					else reject(new Error(`"${cmd}" exited with code ${code}`));
+				});
+				child.on("error", reject);
 			});
 		}
 	},
