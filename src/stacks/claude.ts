@@ -11,6 +11,12 @@ const CMDS = [
 	"claude plugin install saaskit@authstack",
 ];
 
+const UNINSTALL_CMDS = [
+	"claude plugin uninstall agentkit@authstack",
+	"claude plugin uninstall saaskit@authstack",
+	"claude plugin marketplace remove authstack",
+];
+
 const MARKETPLACE_ID = "authstack";
 const PLUGIN_NAME = "agentkit";
 const PLUGIN_DIR = join(
@@ -78,6 +84,7 @@ export const claudeStack: Stack = {
 	description: "Scalekit auth plugins for Claude Code",
 	aliases: ["claude-code", "cc"],
 	commands: CMDS,
+	uninstallCommands: UNINSTALL_CMDS,
 	nextSteps: [
 		"Run `claude` to start a session",
 		"Enable auto-update: /plugins → Marketplace → authstack → Enable auto-update",
@@ -99,6 +106,19 @@ export const claudeStack: Stack = {
 
 	async install() {
 		for (const cmd of CMDS) {
+			await new Promise<void>((resolve, reject) => {
+				const child = spawn(cmd, { shell: true, stdio: "inherit" });
+				child.on("close", (code) => {
+					if (code === 0) resolve();
+					else reject(new Error(`"${cmd}" exited with code ${code}`));
+				});
+				child.on("error", reject);
+			});
+		}
+	},
+
+	async uninstall() {
+		for (const cmd of UNINSTALL_CMDS) {
 			await new Promise<void>((resolve, reject) => {
 				const child = spawn(cmd, { shell: true, stdio: "inherit" });
 				child.on("close", (code) => {

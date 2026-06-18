@@ -120,6 +120,61 @@ function listExtensions(cmd: Command) {
 	}
 }
 
+async function uninstallExtension(
+	name: string,
+	opts: { yes?: boolean },
+	cmd: Command,
+) {
+	const json = isJson(cmd);
+	const stack = findStack(name);
+
+	if (!stack) {
+		if (json) {
+			jsonErr(
+				`Unknown extension "${name}". Available: ${availableNames().join(", ")}`,
+			);
+		}
+		log.error(
+			`Unknown extension "${name}". Available: ${availableNames().join(", ")}`,
+		);
+		process.exit(1);
+	}
+
+	if (!stack.uninstall) {
+		if (json) {
+			jsonErr(`Uninstall not supported for "${stack.id}"`);
+		}
+		log.error(`Uninstall not supported for "${stack.id}"`);
+		process.exit(1);
+	}
+
+	if (!isNonInteractive(cmd) && !opts.yes) {
+		const ok = await confirm({
+			message: `Uninstall ${stack.name} auth stack?`,
+		});
+		if (isCancel(ok) || !ok) {
+			cancel("Cancelled.");
+			process.exit(0);
+		}
+	}
+
+	try {
+		await stack.uninstall();
+		if (json) {
+			jsonOut({ extension: stack.id, name: stack.name, status: "uninstalled" });
+		} else {
+			log.success(`${stack.name} — uninstalled`);
+		}
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		if (json) {
+			jsonErr(`${stack.name} uninstall failed: ${message}`);
+		}
+		log.error(`${stack.name} uninstall failed: ${message}`);
+		process.exit(1);
+	}
+}
+
 const installCmd = styledCommand("install")
 	.alias("i")
 	.description("install an extension")
@@ -243,9 +298,19 @@ const statusCmd = styledCommand("status")
 		}
 	});
 
+const uninstallCmd = styledCommand("uninstall")
+	.alias("rm")
+	.description("uninstall an extension")
+	.argument("<name>", "extension to uninstall (cursor, claude, codex, copilot)")
+	.option("-y, --yes", "skip confirmation")
+	.action(async (name: string, opts, cmd: Command) => {
+		await uninstallExtension(name, opts, cmd);
+	});
+
 export const extensionCommand = styledCommand("extension")
 	.alias("ext")
 	.description("manage Scalekit extensions for coding tools")
 	.addCommand(installCmd)
+	.addCommand(uninstallCmd)
 	.addCommand(listCmd)
 	.addCommand(statusCmd);
