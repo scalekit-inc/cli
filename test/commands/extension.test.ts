@@ -19,13 +19,19 @@ vi.mock("../../src/core/version-check.js", () => ({
 	checkStackVersion: vi.fn(),
 }));
 
+vi.mock("../../src/core/cache.js", () => ({
+	cacheInvalidate: vi.fn(),
+}));
+
 import { cancel, confirm, isCancel, log } from "@clack/prompts";
 import { extensionCommand } from "../../src/commands/extension.js";
+import { cacheInvalidate } from "../../src/core/cache.js";
 import { checkStackVersion } from "../../src/core/version-check.js";
 import type { VersionStatus } from "../../src/stacks/registry.js";
 import { stacks } from "../../src/stacks/registry.js";
 
 const mockCheckStackVersion = vi.mocked(checkStackVersion);
+const mockCacheInvalidate = vi.mocked(cacheInvalidate);
 
 const mockLog = vi.mocked(log);
 const mockConfirm = vi.mocked(confirm);
@@ -313,6 +319,124 @@ describe("extension status", () => {
 		await expect(run(["status", "nope"])).rejects.toThrow("process.exit(1)");
 		expect(mockLog.error).toHaveBeenCalledWith(
 			expect.stringContaining('Unknown stack "nope"'),
+		);
+	});
+});
+
+describe("extension uninstall --dry-run", () => {
+	it("shows uninstall commands without executing for claude", async () => {
+		const claude = stacks[1];
+		vi.spyOn(claude, "uninstall" as keyof typeof claude);
+
+		await run(["uninstall", "claude", "--dry-run"]);
+
+		for (const cmd of claude.uninstallCommands ?? []) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+		expect(claude.uninstall).not.toHaveBeenCalled();
+	});
+
+	it("shows uninstall commands for cursor", async () => {
+		await run(["uninstall", "cursor", "--dry-run"]);
+
+		const cursor = stacks[0];
+		for (const cmd of cursor.uninstallCommands ?? []) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+
+	it("resolves alias cc to claude", async () => {
+		await run(["uninstall", "cc", "--dry-run"]);
+
+		const claude = stacks[1];
+		for (const cmd of claude.uninstallCommands ?? []) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+});
+
+describe("extension uninstall with confirmation", () => {
+	it("uninstalls when user confirms", async () => {
+		const claude = stacks[1];
+		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue(
+			undefined,
+		);
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["uninstall", "claude"]);
+
+		expect(mockConfirm).toHaveBeenCalled();
+		expect(claude.uninstall).toHaveBeenCalled();
+		expect(mockLog.success).toHaveBeenCalledWith("Claude Code — uninstalled");
+	});
+
+	it("invalidates cache after uninstall", async () => {
+		const claude = stacks[1];
+		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue(
+			undefined,
+		);
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["uninstall", "claude"]);
+
+		expect(mockCacheInvalidate).toHaveBeenCalledWith("claude");
+	});
+
+	it("exits when user declines", async () => {
+		mockConfirm.mockResolvedValue(false as never);
+
+		await expect(run(["uninstall", "claude"])).rejects.toThrow(
+			"process.exit(0)",
+		);
+		expect(cancel).toHaveBeenCalledWith("Cancelled.");
+	});
+
+	it("exits on cancel signal", async () => {
+		mockConfirm.mockResolvedValue(Symbol("cancel") as never);
+		mockIsCancel.mockReturnValue(true);
+
+		await expect(run(["uninstall", "claude"])).rejects.toThrow(
+			"process.exit(0)",
+		);
+	});
+});
+
+describe("extension uninstall --yes", () => {
+	it("skips confirmation prompt", async () => {
+		const claude = stacks[1];
+		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue(
+			undefined,
+		);
+
+		await run(["uninstall", "claude", "--yes"]);
+
+		expect(mockConfirm).not.toHaveBeenCalled();
+		expect(claude.uninstall).toHaveBeenCalled();
+	});
+});
+
+describe("extension uninstall error handling", () => {
+	it("exits 1 for unknown extension", async () => {
+		await expect(run(["uninstall", "unknown"])).rejects.toThrow(
+			"process.exit(1)",
+		);
+		expect(mockLog.error).toHaveBeenCalledWith(
+			expect.stringContaining('Unknown extension "unknown"'),
+		);
+	});
+
+	it("exits 1 when uninstall fails", async () => {
+		vi.spyOn(
+			stacks[1],
+			"uninstall" as keyof (typeof stacks)[1],
+		).mockRejectedValue(new Error("uninstall broke"));
+		mockConfirm.mockResolvedValue(true as never);
+
+		await expect(run(["uninstall", "claude"])).rejects.toThrow(
+			"process.exit(1)",
+		);
+		expect(mockLog.error).toHaveBeenCalledWith(
+			expect.stringContaining("uninstall broke"),
 		);
 	});
 });

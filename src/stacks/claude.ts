@@ -90,6 +90,7 @@ export const claudeStack: Stack = {
 		"Enable auto-update: /plugins → Marketplace → authstack → Enable auto-update",
 		'Try: "Connect my Gmail account using Scalekit"',
 	],
+	tryItNow: 'claude "Analyze my project and suggest how Scalekit can power it"',
 
 	detect() {
 		try {

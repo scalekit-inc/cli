@@ -1,6 +1,6 @@
 {
 	"name": "@scalekit-inc/cli",
-	"version": "0.3.8",
+	"version": "0.3.12",
 	"description": "Scalekit CLI",
 	"type": "module",
 	"bin": {
@@ -13,7 +13,7 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/scalekit-inc/cli"
+		"url": "git+https://github.com/scalekit-inc/cli.git"
 	},
 	"engines": {
 		"node": ">=20"
@@ -28,7 +28,8 @@
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"publint": "publint",
-		"prepublishOnly": "npm run test && npm run build && npm run publint"
+		"bump": "pnpm dlx tsx scripts/bump.ts",
+		"prepublishOnly": "pnpm run test && pnpm run build && pnpm run publint"
 	},
 	"keywords": [
 		"scalekit",
