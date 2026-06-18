@@ -8,13 +8,6 @@ import type { Stack } from "./registry.js";
 
 const PLUGIN_DIR = join(homedir(), ".cursor", "plugins", "local");
 const KIT_NAMES = ["agentkit", "saaskit"] as const;
-const OLD_PLUGIN_NAMES = [
-	"agent-auth",
-	"full-stack-auth",
-	"mcp-auth",
-	"modular-scim",
-	"modular-sso",
-];
 
 export const cursorStack: Stack = {
 	id: "cursor",
@@ -56,10 +49,6 @@ export const cursorStack: Stack = {
 			const autostackRoot = await downloadAuthstack(tmp);
 
 			await mkdir(PLUGIN_DIR, { recursive: true });
-
-			for (const name of OLD_PLUGIN_NAMES) {
-				await rm(join(PLUGIN_DIR, name), { recursive: true, force: true });
-			}
 
 			for (const name of KIT_NAMES) {
 				await rm(join(PLUGIN_DIR, name), { recursive: true, force: true });

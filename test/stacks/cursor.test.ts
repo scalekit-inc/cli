@@ -78,20 +78,6 @@ describe("cursorStack.install", () => {
 
 		expect(mockDownload).toHaveBeenCalledWith("/tmp/scalekit-cursor-abc");
 
-		const OLD_NAMES = [
-			"agent-auth",
-			"full-stack-auth",
-			"mcp-auth",
-			"modular-scim",
-			"modular-sso",
-		];
-		for (const name of OLD_NAMES) {
-			expect(mockRm).toHaveBeenCalledWith(
-				`/home/user/.cursor/plugins/local/${name}`,
-				{ recursive: true, force: true },
-			);
-		}
-
 		expect(mockCp).toHaveBeenCalledWith(
 			"/tmp/scalekit-cursor-abc/authstack-main/kits/agentkit",
 			"/home/user/.cursor/plugins/local/agentkit",
