@@ -14,7 +14,7 @@
 
 ---
 
-Install Scalekit auth extensions into your AI coding tools — Cursor, Claude Code, Codex, and GitHub Copilot — with auto-detection, interactive prompts, and dry-run previews.
+Install Scalekit auth extensions (and skills) into your AI coding tools — Cursor, Claude Code, Codex, GitHub Copilot, and others — with auto-detection, interactive prompts, and dry-run previews.
 
 ## Quick start
 
@@ -43,6 +43,13 @@ scalekit setup
 ```
 
 Auto-detects installed tools, lets you pick which ones to set up, and installs the auth extensions.
+
+You can also install Scalekit skills (for Cline, Windsurf, Aider, and other agents) from the unified authstack:
+
+```bash
+scalekit setup          # choose "Scalekit skills" in the wizard
+scalekit setup --skip-skills   # stacks only
+```
 
 ### Direct install
 
@@ -90,8 +97,9 @@ scalekit extension status            # check all versions
 
 ```
 scalekit                              show help
-scalekit setup                        interactive setup wizard
+scalekit setup                        interactive setup wizard (stacks + skills)
 scalekit setup <tool>                 set up a specific tool
+scalekit setup --skip-skills          stacks only, skip skills
 
 scalekit extension install <id>       install by id or alias    (alias: ext i)
 scalekit extension uninstall <id>     uninstall by id or alias  (alias: ext rm)

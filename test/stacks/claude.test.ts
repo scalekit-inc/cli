@@ -15,6 +15,7 @@ vi.mock("node:fs/promises", () => ({
 import { execFileSync, spawn } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { claudeStack } from "../../src/stacks/claude.js";
+import { AUTHSTACK_MARKETPLACE, AUTHSTACK_REPO } from "../../src/core/authstack.js";
 
 const mockReaddir = vi.mocked(readdir);
 const mockReadFile = vi.mocked(readFile);
@@ -71,8 +72,8 @@ describe("claudeStack.install", () => {
 describe("claudeStack.checkVersion", () => {
 	const settingsWithRepo = JSON.stringify({
 		extraKnownMarketplaces: {
-			authstack: {
-				source: { repo: "scalekit-inc/authstack" },
+			[AUTHSTACK_MARKETPLACE]: {
+				source: { repo: AUTHSTACK_REPO },
 			},
 		},
 	});

@@ -2,8 +2,9 @@ import { execFileSync } from "node:child_process";
 import { access, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const AUTHSTACK_URL =
-	"https://github.com/scalekit-inc/authstack/archive/refs/heads/main.tar.gz";
+import { AUTHSTACK_URL } from "./authstack.js";
+
+export { AUTHSTACK_URL };
 
 export async function downloadAuthstack(tmpDir: string): Promise<string> {
 	const sourceDir = process.env.AUTHSTACK_SOURCE_DIR;

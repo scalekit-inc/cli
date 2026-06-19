@@ -1,17 +1,21 @@
 import { execFileSync } from "node:child_process";
 import { runShellCommands } from "../core/shell.js";
+import {
+	AUTHSTACK_MARKETPLACE,
+	AUTHSTACK_REPO,
+} from "../core/authstack.js";
 import type { Stack } from "./registry.js";
 
 const CMDS = [
-	"copilot plugin marketplace add scalekit-inc/authstack",
-	"copilot plugin install agentkit@authstack",
-	"copilot plugin install saaskit@authstack",
+	`copilot plugin marketplace add ${AUTHSTACK_REPO}`,
+	`copilot plugin install agentkit@${AUTHSTACK_MARKETPLACE}`,
+	`copilot plugin install saaskit@${AUTHSTACK_MARKETPLACE}`,
 ];
 
 const UNINSTALL_CMDS = [
-	"copilot plugin uninstall agentkit@authstack",
-	"copilot plugin uninstall saaskit@authstack",
-	"copilot plugin marketplace remove authstack",
+	`copilot plugin uninstall agentkit@${AUTHSTACK_MARKETPLACE}`,
+	`copilot plugin uninstall saaskit@${AUTHSTACK_MARKETPLACE}`,
+	`copilot plugin marketplace remove ${AUTHSTACK_MARKETPLACE}`,
 ];
 
 export const copilotStack: Stack = {
@@ -23,7 +27,7 @@ export const copilotStack: Stack = {
 	uninstallCommands: UNINSTALL_CMDS,
 	nextSteps: [
 		"Run `copilot` to start a session",
-		"To update later: `copilot plugin update agentkit@authstack`",
+		`To update later: \`copilot plugin update agentkit@${AUTHSTACK_MARKETPLACE}\``,
 		'Try: "Connect my Gmail account using Scalekit"',
 	],
 	tryItNow:

@@ -4,10 +4,11 @@ import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { downloadAuthstack } from "../core/downloader.js";
+import { AUTHSTACK_KITS } from "../core/authstack.js";
 import type { Stack } from "./registry.js";
 
 const PLUGIN_DIR = join(homedir(), ".cursor", "plugins", "local");
-const KIT_NAMES = ["agentkit", "saaskit"] as const;
+const KIT_NAMES = AUTHSTACK_KITS;
 
 export const cursorStack: Stack = {
 	id: "cursor",

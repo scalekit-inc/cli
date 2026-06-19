@@ -4,21 +4,25 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import semver from "semver";
 import { runShellCommands } from "../core/shell.js";
+import {
+	AUTHSTACK_MARKETPLACE,
+	AUTHSTACK_REPO,
+} from "../core/authstack.js";
 import type { Stack, VersionStatus } from "./registry.js";
 
 const CMDS = [
-	"claude plugin marketplace add scalekit-inc/authstack",
-	"claude plugin install agentkit@authstack",
-	"claude plugin install saaskit@authstack",
+	`claude plugin marketplace add ${AUTHSTACK_REPO}`,
+	`claude plugin install agentkit@${AUTHSTACK_MARKETPLACE}`,
+	`claude plugin install saaskit@${AUTHSTACK_MARKETPLACE}`,
 ];
 
 const UNINSTALL_CMDS = [
-	"claude plugin uninstall agentkit@authstack",
-	"claude plugin uninstall saaskit@authstack",
-	"claude plugin marketplace remove authstack",
+	`claude plugin uninstall agentkit@${AUTHSTACK_MARKETPLACE}`,
+	`claude plugin uninstall saaskit@${AUTHSTACK_MARKETPLACE}`,
+	`claude plugin marketplace remove ${AUTHSTACK_MARKETPLACE}`,
 ];
 
-const MARKETPLACE_ID = "authstack";
+const MARKETPLACE_ID = AUTHSTACK_MARKETPLACE;
 const PLUGIN_NAME = "agentkit";
 const PLUGIN_DIR = join(
 	homedir(),
@@ -88,7 +92,7 @@ export const claudeStack: Stack = {
 	uninstallCommands: UNINSTALL_CMDS,
 	nextSteps: [
 		"Run `claude` to start a session",
-		"Enable auto-update: /plugins → Marketplace → authstack → Enable auto-update",
+		`Enable auto-update: /plugins → Marketplace → ${AUTHSTACK_MARKETPLACE} → Enable auto-update`,
 		'Try: "Connect my Gmail account using Scalekit"',
 	],
 	tryItNow: 'claude "Analyze my project and suggest how Scalekit can power it"',

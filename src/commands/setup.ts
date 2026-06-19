@@ -70,7 +70,7 @@ async function runSkillsInstall(): Promise<boolean> {
 	log.step("Installing skills...");
 	try {
 		await installSkills();
-		log.success("Skills installed.");
+		log.success("Skills installed from authstack.");
 		return true;
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -105,8 +105,8 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			: [
 					{
 						value: SKILLS_ID,
-						label: "Other agents",
-						hint: "Cline, Windsurf, Aider & more",
+						label: "Scalekit skills",
+						hint: "for Cline, Windsurf, Aider & more (via authstack)",
 					},
 				];
 
@@ -172,7 +172,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 				skillsInstalled = await runSkillsInstall();
 			} else {
 				log.info("");
-				log.info("Run this to install skills with the interactive wizard:");
+				log.info("Run this to install Scalekit skills from authstack:");
 				log.info(`  ${pc.cyan(SKILLS_CMD)}`);
 				log.info("");
 			}

@@ -1,6 +1,12 @@
 import { spawn } from "node:child_process";
 
-const SKILLS_REPO = "scalekit-inc/authstack";
+import { AUTHSTACK_REPO } from "./authstack.js";
+
+// Skills (including setup guidance) are served from the same unified
+// scalekit-inc/authstack repo used for the editor stacks/plugins.
+// If the installed guidance references legacy split repos, that content
+// lives in the authstack repo itself and should be updated there.
+const SKILLS_REPO = AUTHSTACK_REPO;
 
 export const SKILLS_CMD = `npx skills add ${SKILLS_REPO} --all`;
 

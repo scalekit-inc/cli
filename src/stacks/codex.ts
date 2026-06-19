@@ -3,9 +3,13 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { downloadAuthstack } from "../core/downloader.js";
+import {
+	AUTHSTACK_KITS,
+	AUTHSTACK_MARKETPLACE,
+} from "../core/authstack.js";
 import type { Stack } from "./registry.js";
 
-const MARKETPLACE_DIR = join(homedir(), ".codex", "marketplaces", "authstack");
+const MARKETPLACE_DIR = join(homedir(), ".codex", "marketplaces", AUTHSTACK_MARKETPLACE);
 const PERSONAL_MARKETPLACE = join(
 	homedir(),
 	".agents",
@@ -16,28 +20,17 @@ const PERSONAL_MARKETPLACE = join(
 function buildMarketplaceJson(marketplaceDir: string): string {
 	return JSON.stringify(
 		{
-			name: "authstack",
+			name: AUTHSTACK_MARKETPLACE,
 			interface: { displayName: "Scalekit Auth Stack" },
-			plugins: [
-				{
-					name: "agentkit",
-					source: {
-						source: "local",
-						path: join(marketplaceDir, "kits", "agentkit"),
-					},
-					policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
-					category: "Agent Auth",
+			plugins: AUTHSTACK_KITS.map((kit) => ({
+				name: kit,
+				source: {
+					source: "local",
+					path: join(marketplaceDir, "kits", kit),
 				},
-				{
-					name: "saaskit",
-					source: {
-						source: "local",
-						path: join(marketplaceDir, "kits", "saaskit"),
-					},
-					policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
-					category: "Application Auth",
-				},
-			],
+				policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
+				category: kit === "agentkit" ? "Agent Auth" : "Application Auth",
+			})),
 		},
 		null,
 		2,

@@ -12,6 +12,7 @@ vi.mock("node:fs/promises", () => ({
 import { execFileSync } from "node:child_process";
 import { access, writeFile } from "node:fs/promises";
 import { AUTHSTACK_URL, downloadAuthstack } from "../../src/core/downloader.js";
+import { AUTHSTACK_REPO } from "../../src/core/authstack.js";
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockWriteFile = vi.mocked(writeFile);
@@ -26,7 +27,7 @@ beforeEach(() => {
 describe("AUTHSTACK_URL", () => {
 	it("points to the unified authstack repo main branch", () => {
 		expect(AUTHSTACK_URL).toBe(
-			"https://github.com/scalekit-inc/authstack/archive/refs/heads/main.tar.gz",
+			`https://github.com/${AUTHSTACK_REPO}/archive/refs/heads/main.tar.gz`,
 		);
 	});
 });

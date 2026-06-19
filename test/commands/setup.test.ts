@@ -287,7 +287,7 @@ describe("skills installation", () => {
 		await run([]);
 
 		expect(mockInstallSkills).toHaveBeenCalled();
-		expect(mockLog.success).toHaveBeenCalledWith("Skills installed.");
+		expect(mockLog.success).toHaveBeenCalledWith("Skills installed from authstack.");
 	});
 
 	it("interactive: 'I'll do it myself' shows the command", async () => {
@@ -313,7 +313,7 @@ describe("skills installation", () => {
 		expect(mockInstallSkills).not.toHaveBeenCalled();
 	});
 
-	it("multiselect includes 'Other agents' option", async () => {
+	it("multiselect includes the skills option", async () => {
 		stubStacks();
 		mockMultiselect.mockResolvedValue(["cursor"] as never);
 
@@ -324,7 +324,7 @@ describe("skills installation", () => {
 		};
 		const skillsOpt = call.options.find((o) => o.value === "skills");
 		expect(skillsOpt).toBeDefined();
-		expect(skillsOpt?.label).toBe("Other agents");
+		expect(skillsOpt?.label).toBe("Scalekit skills");
 	});
 
 	it("--skip-skills hides skills from multiselect", async () => {
