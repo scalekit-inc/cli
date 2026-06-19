@@ -1,18 +1,14 @@
 import { execFileSync } from "node:child_process";
 import { runShellCommands } from "../core/shell.js";
+import {
+	AUTHSTACK_MARKETPLACE,
+	getPluginMarketplaceCommands,
+	getPluginUninstallCommands,
+} from "../core/authstack.js";
 import type { Stack } from "./registry.js";
 
-const CMDS = [
-	"copilot plugin marketplace add scalekit-inc/authstack",
-	"copilot plugin install agentkit@authstack",
-	"copilot plugin install saaskit@authstack",
-];
-
-const UNINSTALL_CMDS = [
-	"copilot plugin uninstall agentkit@authstack",
-	"copilot plugin uninstall saaskit@authstack",
-	"copilot plugin marketplace remove authstack",
-];
+const CMDS = getPluginMarketplaceCommands("copilot");
+const UNINSTALL_CMDS = getPluginUninstallCommands("copilot");
 
 export const copilotStack: Stack = {
 	id: "copilot",
@@ -23,11 +19,19 @@ export const copilotStack: Stack = {
 	uninstallCommands: UNINSTALL_CMDS,
 	nextSteps: [
 		"Run `copilot` to start a session",
-		"To update later: `copilot plugin update agentkit@authstack`",
+		`To update later: \`copilot plugin update agentkit@${AUTHSTACK_MARKETPLACE}\``,
 		'Try: "Connect my Gmail account using Scalekit"',
 	],
 	tryItNow:
 		'copilot -i "Analyze my project and suggest how Scalekit can power it"',
+
+	async checkVersion() {
+		const detected = this.detect ? this.detect() : false;
+		if (!detected) {
+			return { installed: false, status: "not_installed" as const };
+		}
+		return { installed: true, status: "unknown" as const };
+	},
 
 	detect() {
 		try {

@@ -25,6 +25,7 @@ vi.mock("../../src/core/downloader.js", () => ({
 import { execFileSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { downloadAuthstack } from "../../src/core/downloader.js";
+import { AUTHSTACK_ARCHIVE_DIR, AUTHSTACK_MARKETPLACE } from "../../src/core/authstack.js";
 import { codexStack } from "../../src/stacks/codex.js";
 
 const mockExecFileSync = vi.mocked(execFileSync);
@@ -36,7 +37,7 @@ const mockRm = vi.mocked(rm);
 const mockWriteFile = vi.mocked(writeFile);
 const mockDownload = vi.mocked(downloadAuthstack);
 
-const MARKETPLACE_DIR = "/home/user/.codex/marketplaces/authstack";
+const MARKETPLACE_DIR = `/home/user/.codex/marketplaces/${AUTHSTACK_MARKETPLACE}`;
 const PERSONAL_MARKETPLACE = "/home/user/.agents/plugins/marketplace.json";
 
 beforeEach(() => {
@@ -46,7 +47,7 @@ beforeEach(() => {
 	mockCp.mockResolvedValue(undefined);
 	mockRm.mockResolvedValue(undefined);
 	mockWriteFile.mockResolvedValue(undefined);
-	mockDownload.mockResolvedValue("/tmp/scalekit-codex-abc/authstack-main");
+	mockDownload.mockResolvedValue(`/tmp/scalekit-codex-abc/${AUTHSTACK_ARCHIVE_DIR}`);
 });
 
 describe("codexStack.detect", () => {
@@ -73,13 +74,13 @@ describe("codexStack.install", () => {
 
 		expect(mockDownload).toHaveBeenCalledWith("/tmp/scalekit-codex-abc");
 		expect(mockCp).toHaveBeenCalledWith(
-			"/tmp/scalekit-codex-abc/authstack-main",
+			`/tmp/scalekit-codex-abc/${AUTHSTACK_ARCHIVE_DIR}`,
 			MARKETPLACE_DIR,
 			{ recursive: true },
 		);
 		expect(mockWriteFile).toHaveBeenCalledWith(
 			PERSONAL_MARKETPLACE,
-			expect.stringContaining('"authstack"'),
+			expect.stringContaining(`"${AUTHSTACK_MARKETPLACE}"`),
 			"utf-8",
 		);
 		expect(mockWriteFile).toHaveBeenCalledWith(
@@ -91,14 +92,14 @@ describe("codexStack.install", () => {
 
 	it("overwrites personal marketplace when it already belongs to scalekit", async () => {
 		mockReadFile.mockResolvedValue(
-			JSON.stringify({ name: "authstack" }) as unknown as Buffer,
+			JSON.stringify({ name: AUTHSTACK_MARKETPLACE }) as unknown as Buffer,
 		);
 
 		await codexStack.install();
 
 		expect(mockWriteFile).toHaveBeenCalledWith(
 			PERSONAL_MARKETPLACE,
-			expect.stringContaining('"authstack"'),
+			expect.stringContaining(`"${AUTHSTACK_MARKETPLACE}"`),
 			"utf-8",
 		);
 	});
@@ -138,7 +139,7 @@ describe("codexStack.uninstall", () => {
 
 	it("removes personal marketplace file when it belongs to scalekit", async () => {
 		mockReadFile.mockResolvedValue(
-			JSON.stringify({ name: "authstack" }) as unknown as Buffer,
+			JSON.stringify({ name: AUTHSTACK_MARKETPLACE }) as unknown as Buffer,
 		);
 
 		await codexStack.uninstall?.();

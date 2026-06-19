@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AUTHSTACK_REPO } from "../../src/core/authstack.js";
+
 vi.mock("@clack/prompts", () => ({
 	intro: vi.fn(),
 	outro: vi.fn(),
@@ -13,7 +15,7 @@ vi.mock("@clack/prompts", () => ({
 
 vi.mock("../../src/core/skills.js", () => ({
 	installSkills: vi.fn(() => Promise.resolve()),
-	SKILLS_CMD: "npx skills add scalekit-inc/skills --all",
+	SKILLS_CMD: `npx skills add ${AUTHSTACK_REPO} --all`,
 }));
 
 import {
@@ -275,7 +277,7 @@ describe("skills installation", () => {
 
 		expect(mockInstallSkills).not.toHaveBeenCalled();
 		expect(mockLog.info).toHaveBeenCalledWith(
-			"Would run: npx skills add scalekit-inc/skills --all",
+			`Would run: npx skills add ${AUTHSTACK_REPO} --all`,
 		);
 	});
 
@@ -287,7 +289,7 @@ describe("skills installation", () => {
 		await run([]);
 
 		expect(mockInstallSkills).toHaveBeenCalled();
-		expect(mockLog.success).toHaveBeenCalledWith("Skills installed.");
+		expect(mockLog.success).toHaveBeenCalledWith("Skills installed from authstack.");
 	});
 
 	it("interactive: 'I'll do it myself' shows the command", async () => {
@@ -300,7 +302,7 @@ describe("skills installation", () => {
 		expect(mockInstallSkills).not.toHaveBeenCalled();
 		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
 		expect(
-			calls.some((c) => c.includes("npx skills add scalekit-inc/skills")),
+			calls.some((c) => c.includes(`npx skills add ${AUTHSTACK_REPO}`)),
 		).toBe(true);
 	});
 
@@ -313,7 +315,7 @@ describe("skills installation", () => {
 		expect(mockInstallSkills).not.toHaveBeenCalled();
 	});
 
-	it("multiselect includes 'Other agents' option", async () => {
+	it("multiselect includes the skills option", async () => {
 		stubStacks();
 		mockMultiselect.mockResolvedValue(["cursor"] as never);
 
@@ -324,7 +326,7 @@ describe("skills installation", () => {
 		};
 		const skillsOpt = call.options.find((o) => o.value === "skills");
 		expect(skillsOpt).toBeDefined();
-		expect(skillsOpt?.label).toBe("Other agents");
+		expect(skillsOpt?.label).toBe("Scalekit skills");
 	});
 
 	it("--skip-skills hides skills from multiselect", async () => {
@@ -351,7 +353,7 @@ describe("skills installation", () => {
 		);
 		const infoCalls = mockLog.info.mock.calls.map((c) => c[0] as string);
 		expect(
-			infoCalls.some((c) => c.includes("npx skills add scalekit-inc/skills")),
+			infoCalls.some((c) => c.includes(`npx skills add ${AUTHSTACK_REPO}`)),
 		).toBe(true);
 	});
 

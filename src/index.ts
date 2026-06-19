@@ -12,7 +12,7 @@ function showBanner() {
 		return;
 	}
 
-	cfonts.say("ScaleKit", {
+	cfonts.say("Scalekit", {
 		font: "chrome",
 		align: "left",
 		colors: ["cyan", "white", "blue"],
@@ -22,7 +22,7 @@ function showBanner() {
 }
 
 const program = styledCommand("scalekit")
-	.description("Auth stack for the agentic era")
+	.description("Authstack for devs building AI agents, MCP servers and SaaS apps")
 	.version(version)
 	.option("--plain", "disable colors and styling (also respects NO_COLOR env)")
 	.option("--json", "output machine-readable JSON")

@@ -4,16 +4,17 @@ import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { downloadAuthstack } from "../core/downloader.js";
+import { AUTHSTACK_KITS, getSetupCommand } from "../core/authstack.js";
 import type { Stack } from "./registry.js";
 
 const PLUGIN_DIR = join(homedir(), ".cursor", "plugins", "local");
-const KIT_NAMES = ["agentkit", "saaskit"] as const;
+const KIT_NAMES = AUTHSTACK_KITS;
 
 export const cursorStack: Stack = {
 	id: "cursor",
 	name: "Cursor",
 	description: "Scalekit auth plugins for Cursor",
-	commands: ["npx @scalekit-inc/cli setup cursor"],
+	commands: [getSetupCommand("cursor")],
 	uninstallCommands: KIT_NAMES.map(
 		(name) => `rm -rf ${join(PLUGIN_DIR, name)}`,
 	),
@@ -63,6 +64,14 @@ export const cursorStack: Stack = {
 
 	tryItNow:
 		'Open Cursor → ⌘L → Ask: "Analyze my project and suggest how Scalekit can power it"',
+
+	async checkVersion() {
+		const detected = this.detect ? this.detect() : false;
+		if (!detected) {
+			return { installed: false, status: "not_installed" as const };
+		}
+		return { installed: true, status: "unknown" as const };
+	},
 
 	async uninstall() {
 		for (const name of KIT_NAMES) {

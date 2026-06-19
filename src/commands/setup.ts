@@ -70,14 +70,12 @@ async function runSkillsInstall(): Promise<boolean> {
 	log.step("Installing skills...");
 	try {
 		await installSkills();
-		log.success("Skills installed.");
+		log.success("Skills installed from Authstack.");
 		return true;
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		log.error(`Skills installation failed: ${message}`);
-		log.info(
-			`You can install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
-		);
+		log.info(`You can install later: ${pc.cyan(SKILLS_CMD)}`);
 		return false;
 	}
 }
@@ -86,7 +84,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const json = isJson(cmd);
 	const nonInteractive = isNonInteractive(cmd);
 
-	if (!json) intro("ScaleKit Setup");
+	if (!json) intro("Scalekit Setup");
 
 	const detected = stacks.filter((s) => s.detect());
 
@@ -107,8 +105,8 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			: [
 					{
 						value: SKILLS_ID,
-						label: "Other agents",
-						hint: "Cline, Windsurf, Aider & more",
+						label: "Scalekit skills",
+						hint: "for Cline, Windsurf, Aider & more (via Authstack)",
 					},
 				];
 
@@ -155,7 +153,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			skillsInstalled = await runSkillsInstall();
 		} else {
 			const action = await select({
-				message: "How do you want to install skills?",
+				message: "How do you want to install Scalekit skills (from Authstack)?",
 				options: [
 					{
 						value: "auto",
@@ -174,8 +172,9 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 				skillsInstalled = await runSkillsInstall();
 			} else {
 				log.info("");
-				log.info("Run this to install skills with the interactive wizard:");
-				log.info(`  ${pc.cyan("npx skills add scalekit-inc/skills")}`);
+				log.info("Run this to install Scalekit skills from Authstack:");
+				log.info(`  ${pc.cyan(SKILLS_CMD)}`);
+				log.info("  (This pulls skills like setup guidance; the content is maintained in the Authstack repo.)");
 				log.info("");
 			}
 		}
@@ -245,7 +244,7 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 	}
 
 	if (!isNonInteractive(cmd) && !opts.dryRun) {
-		intro("ScaleKit Setup");
+		intro("Scalekit Setup");
 		const ok = await confirm({
 			message: `Install ${stack.name} auth stack?`,
 		});
@@ -303,11 +302,11 @@ const setupExtensionShortcut = styledCommand("extension")
 	});
 
 export const setupCommand = styledCommand("setup")
-	.description("set up ScaleKit auth stacks for your coding agents")
+	.description("set up Scalekit auth stacks and skills for your coding agents")
 	.argument("[stack]", "cursor, claude, codex, copilot (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
-	.option("--skip-skills", "skip Scalekit skills installation")
+	.option("--skip-skills", "skip Scalekit skills (from Authstack)")
 	.addCommand(setupExtensionShortcut)
 	.addHelpText(
 		"after",
@@ -318,7 +317,7 @@ Examples:
   $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
   $ scalekit setup --dry-run    preview commands without running them
-  $ scalekit setup --skip-skills  set up agents only, skip skills`,
+  $ scalekit setup --skip-skills          stacks only (skip Scalekit skills)`,
 	)
 	.action(
 		async (stackId: string | undefined, opts: SetupOpts, cmd: Command) => {

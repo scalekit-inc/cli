@@ -3,9 +3,14 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { downloadAuthstack } from "../core/downloader.js";
+import {
+	AUTHSTACK_KITS,
+	AUTHSTACK_MARKETPLACE,
+	getSetupCommand,
+} from "../core/authstack.js";
 import type { Stack } from "./registry.js";
 
-const MARKETPLACE_DIR = join(homedir(), ".codex", "marketplaces", "authstack");
+const MARKETPLACE_DIR = join(homedir(), ".codex", "marketplaces", AUTHSTACK_MARKETPLACE);
 const PERSONAL_MARKETPLACE = join(
 	homedir(),
 	".agents",
@@ -16,28 +21,17 @@ const PERSONAL_MARKETPLACE = join(
 function buildMarketplaceJson(marketplaceDir: string): string {
 	return JSON.stringify(
 		{
-			name: "authstack",
-			interface: { displayName: "Scalekit Auth Stack" },
-			plugins: [
-				{
-					name: "agentkit",
-					source: {
-						source: "local",
-						path: join(marketplaceDir, "kits", "agentkit"),
-					},
-					policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
-					category: "Agent Auth",
+			name: AUTHSTACK_MARKETPLACE,
+			interface: { displayName: "Scalekit Authstack" },
+			plugins: AUTHSTACK_KITS.map((kit) => ({
+				name: kit,
+				source: {
+					source: "local",
+					path: join(marketplaceDir, "kits", kit),
 				},
-				{
-					name: "saaskit",
-					source: {
-						source: "local",
-						path: join(marketplaceDir, "kits", "saaskit"),
-					},
-					policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
-					category: "Application Auth",
-				},
-			],
+				policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
+				category: kit === "agentkit" ? "Agent Auth" : "Application Auth",
+			})),
 		},
 		null,
 		2,
@@ -68,7 +62,7 @@ export const codexStack: Stack = {
 	name: "Codex",
 	description: "Scalekit auth plugins for Codex / OpenCode",
 	aliases: ["opencode"],
-	commands: ["npx @scalekit-inc/cli setup codex"],
+	commands: [getSetupCommand("codex")],
 	uninstallCommands: [
 		`rm -rf ${MARKETPLACE_DIR}`,
 		`rm -f ${PERSONAL_MARKETPLACE}`,
@@ -76,6 +70,14 @@ export const codexStack: Stack = {
 
 	nextSteps: ["Run `codex mcp login scalekit` to authenticate"],
 	tryItNow: 'codex "Analyze my project and suggest how Scalekit can power it"',
+
+	async checkVersion() {
+		const detected = this.detect ? this.detect() : false;
+		if (!detected) {
+			return { installed: false, status: "not_installed" as const };
+		}
+		return { installed: true, status: "unknown" as const };
+	},
 
 	detect() {
 		try {
@@ -102,7 +104,7 @@ export const codexStack: Stack = {
 			await cp(autostackRoot, MARKETPLACE_DIR, { recursive: true });
 
 			const existingName = await readMarketplaceName();
-			if (existingName === null || existingName === "authstack") {
+			if (existingName === null || existingName === AUTHSTACK_MARKETPLACE) {
 				await writePersonalMarketplace();
 			}
 		} finally {
@@ -113,7 +115,7 @@ export const codexStack: Stack = {
 	async uninstall() {
 		await rm(MARKETPLACE_DIR, { recursive: true, force: true });
 		const existingName = await readMarketplaceName();
-		if (existingName === "authstack") {
+		if (existingName === AUTHSTACK_MARKETPLACE) {
 			await rm(PERSONAL_MARKETPLACE, { force: true });
 		}
 	},
