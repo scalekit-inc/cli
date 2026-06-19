@@ -28,6 +28,7 @@ import { execFileSync } from "node:child_process";
 import { accessSync } from "node:fs";
 import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { downloadAuthstack } from "../../src/core/downloader.js";
+import { AUTHSTACK_ARCHIVE_DIR } from "../../src/core/authstack.js";
 import { cursorStack } from "../../src/stacks/cursor.js";
 
 const mockExecFileSync = vi.mocked(execFileSync);
@@ -44,7 +45,7 @@ beforeEach(() => {
 	mockCp.mockResolvedValue(undefined);
 	mockRm.mockResolvedValue(undefined);
 	mockMkdtemp.mockResolvedValue("/tmp/scalekit-cursor-abc");
-	mockDownload.mockResolvedValue("/tmp/scalekit-cursor-abc/authstack-main");
+	mockDownload.mockResolvedValue(`/tmp/scalekit-cursor-abc/${AUTHSTACK_ARCHIVE_DIR}`);
 });
 
 describe("cursorStack.detect", () => {
@@ -79,12 +80,12 @@ describe("cursorStack.install", () => {
 		expect(mockDownload).toHaveBeenCalledWith("/tmp/scalekit-cursor-abc");
 
 		expect(mockCp).toHaveBeenCalledWith(
-			"/tmp/scalekit-cursor-abc/authstack-main/kits/agentkit",
+			`/tmp/scalekit-cursor-abc/${AUTHSTACK_ARCHIVE_DIR}/kits/agentkit`,
 			"/home/user/.cursor/plugins/local/agentkit",
 			{ recursive: true },
 		);
 		expect(mockCp).toHaveBeenCalledWith(
-			"/tmp/scalekit-cursor-abc/authstack-main/kits/saaskit",
+			`/tmp/scalekit-cursor-abc/${AUTHSTACK_ARCHIVE_DIR}/kits/saaskit`,
 			"/home/user/.cursor/plugins/local/saaskit",
 			{ recursive: true },
 		);

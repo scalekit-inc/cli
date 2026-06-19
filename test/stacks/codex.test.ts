@@ -25,7 +25,7 @@ vi.mock("../../src/core/downloader.js", () => ({
 import { execFileSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { downloadAuthstack } from "../../src/core/downloader.js";
-import { AUTHSTACK_MARKETPLACE } from "../../src/core/authstack.js";
+import { AUTHSTACK_ARCHIVE_DIR, AUTHSTACK_MARKETPLACE } from "../../src/core/authstack.js";
 import { codexStack } from "../../src/stacks/codex.js";
 
 const mockExecFileSync = vi.mocked(execFileSync);
@@ -47,7 +47,7 @@ beforeEach(() => {
 	mockCp.mockResolvedValue(undefined);
 	mockRm.mockResolvedValue(undefined);
 	mockWriteFile.mockResolvedValue(undefined);
-	mockDownload.mockResolvedValue(`/tmp/scalekit-codex-abc/${AUTHSTACK_MARKETPLACE}-main`);
+	mockDownload.mockResolvedValue(`/tmp/scalekit-codex-abc/${AUTHSTACK_ARCHIVE_DIR}`);
 });
 
 describe("codexStack.detect", () => {
@@ -74,7 +74,7 @@ describe("codexStack.install", () => {
 
 		expect(mockDownload).toHaveBeenCalledWith("/tmp/scalekit-codex-abc");
 		expect(mockCp).toHaveBeenCalledWith(
-			`/tmp/scalekit-codex-abc/${AUTHSTACK_MARKETPLACE}-main`,
+			`/tmp/scalekit-codex-abc/${AUTHSTACK_ARCHIVE_DIR}`,
 			MARKETPLACE_DIR,
 			{ recursive: true },
 		);

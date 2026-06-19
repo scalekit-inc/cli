@@ -12,7 +12,7 @@ vi.mock("node:fs/promises", () => ({
 import { execFileSync } from "node:child_process";
 import { access, writeFile } from "node:fs/promises";
 import { AUTHSTACK_URL, downloadAuthstack } from "../../src/core/downloader.js";
-import { AUTHSTACK_REPO } from "../../src/core/authstack.js";
+import { AUTHSTACK_ARCHIVE_DIR, AUTHSTACK_REPO } from "../../src/core/authstack.js";
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockWriteFile = vi.mocked(writeFile);
@@ -66,7 +66,7 @@ describe("downloadAuthstack", () => {
 			"-C",
 			"/tmp/test-dir",
 		]);
-		expect(result).toBe("/tmp/test-dir/authstack-main");
+		expect(result).toBe(`/tmp/test-dir/${AUTHSTACK_ARCHIVE_DIR}`);
 	});
 
 	it("throws when fetch fails", async () => {

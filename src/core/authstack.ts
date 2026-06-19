@@ -5,6 +5,14 @@ export const AUTHSTACK_KITS = ["agentkit", "saaskit"] as const;
 export const AUTHSTACK_URL =
 	`https://github.com/${AUTHSTACK_REPO}/archive/refs/heads/main.tar.gz`;
 
+export const AUTHSTACK_ARCHIVE_DIR = `${AUTHSTACK_REPO.split("/").pop()}-main`;
+
+export const CLI_PACKAGE = "@scalekit-inc/cli";
+
+export function getSetupCommand(stack: string) {
+	return `npx ${CLI_PACKAGE} setup ${stack}`;
+}
+
 export function getPluginMarketplaceCommands(tool: "claude" | "copilot") {
 	return [
 		`${tool} plugin marketplace add ${AUTHSTACK_REPO}`,

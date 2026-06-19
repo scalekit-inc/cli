@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AUTHSTACK_REPO } from "../../src/core/authstack.js";
+
 vi.mock("@clack/prompts", () => ({
 	intro: vi.fn(),
 	outro: vi.fn(),
@@ -13,7 +15,7 @@ vi.mock("@clack/prompts", () => ({
 
 vi.mock("../../src/core/skills.js", () => ({
 	installSkills: vi.fn(() => Promise.resolve()),
-	SKILLS_CMD: "npx skills add scalekit-inc/authstack --all",
+	SKILLS_CMD: `npx skills add ${AUTHSTACK_REPO} --all`,
 }));
 
 import {
@@ -275,7 +277,7 @@ describe("skills installation", () => {
 
 		expect(mockInstallSkills).not.toHaveBeenCalled();
 		expect(mockLog.info).toHaveBeenCalledWith(
-			"Would run: npx skills add scalekit-inc/authstack --all",
+			`Would run: npx skills add ${AUTHSTACK_REPO} --all`,
 		);
 	});
 
@@ -300,7 +302,7 @@ describe("skills installation", () => {
 		expect(mockInstallSkills).not.toHaveBeenCalled();
 		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
 		expect(
-			calls.some((c) => c.includes("npx skills add scalekit-inc/authstack")),
+			calls.some((c) => c.includes(`npx skills add ${AUTHSTACK_REPO}`)),
 		).toBe(true);
 	});
 
@@ -351,7 +353,7 @@ describe("skills installation", () => {
 		);
 		const infoCalls = mockLog.info.mock.calls.map((c) => c[0] as string);
 		expect(
-			infoCalls.some((c) => c.includes("npx skills add scalekit-inc/authstack")),
+			infoCalls.some((c) => c.includes(`npx skills add ${AUTHSTACK_REPO}`)),
 		).toBe(true);
 	});
 

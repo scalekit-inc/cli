@@ -25,6 +25,14 @@ export const copilotStack: Stack = {
 	tryItNow:
 		'copilot -i "Analyze my project and suggest how Scalekit can power it"',
 
+	async checkVersion() {
+		const detected = this.detect ? this.detect() : false;
+		if (!detected) {
+			return { installed: false, status: "not_installed" as const };
+		}
+		return { installed: true, status: "unknown" as const };
+	},
+
 	detect() {
 		try {
 			execFileSync(

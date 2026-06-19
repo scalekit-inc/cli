@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { access, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { AUTHSTACK_URL } from "./authstack.js";
+import { AUTHSTACK_ARCHIVE_DIR, AUTHSTACK_URL } from "./authstack.js";
 
 export { AUTHSTACK_URL };
 
@@ -20,7 +20,7 @@ export async function downloadAuthstack(tmpDir: string): Promise<string> {
 
 	execFileSync("tar", ["-xzf", archivePath, "-C", tmpDir]);
 
-	const root = join(tmpDir, "authstack-main");
+	const root = join(tmpDir, AUTHSTACK_ARCHIVE_DIR);
 	try {
 		await access(join(root, "kits"));
 	} catch {

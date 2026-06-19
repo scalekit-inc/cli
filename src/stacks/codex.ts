@@ -6,6 +6,7 @@ import { downloadAuthstack } from "../core/downloader.js";
 import {
 	AUTHSTACK_KITS,
 	AUTHSTACK_MARKETPLACE,
+	getSetupCommand,
 } from "../core/authstack.js";
 import type { Stack } from "./registry.js";
 
@@ -61,7 +62,7 @@ export const codexStack: Stack = {
 	name: "Codex",
 	description: "Scalekit auth plugins for Codex / OpenCode",
 	aliases: ["opencode"],
-	commands: ["npx @scalekit-inc/cli setup codex"],
+	commands: [getSetupCommand("codex")],
 	uninstallCommands: [
 		`rm -rf ${MARKETPLACE_DIR}`,
 		`rm -f ${PERSONAL_MARKETPLACE}`,
@@ -69,6 +70,14 @@ export const codexStack: Stack = {
 
 	nextSteps: ["Run `codex mcp login scalekit` to authenticate"],
 	tryItNow: 'codex "Analyze my project and suggest how Scalekit can power it"',
+
+	async checkVersion() {
+		const detected = this.detect ? this.detect() : false;
+		if (!detected) {
+			return { installed: false, status: "not_installed" as const };
+		}
+		return { installed: true, status: "unknown" as const };
+	},
 
 	detect() {
 		try {

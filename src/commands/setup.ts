@@ -302,11 +302,11 @@ const setupExtensionShortcut = styledCommand("extension")
 	});
 
 export const setupCommand = styledCommand("setup")
-	.description("set up ScaleKit auth stacks for your coding agents")
+	.description("set up ScaleKit auth stacks and skills for your coding agents")
 	.argument("[stack]", "cursor, claude, codex, copilot (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
-	.option("--skip-skills", "skip Scalekit skills installation")
+	.option("--skip-skills", "skip Scalekit skills (from authstack)")
 	.addCommand(setupExtensionShortcut)
 	.addHelpText(
 		"after",
