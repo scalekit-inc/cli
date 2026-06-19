@@ -174,7 +174,9 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 				log.info("");
 				log.info("Run this to install Scalekit skills from Authstack:");
 				log.info(`  ${pc.cyan(SKILLS_CMD)}`);
-				log.info("  (This pulls skills like setup guidance; the content is maintained in the Authstack repo.)");
+				log.info(
+					"  (This pulls skills like setup guidance; the content is maintained in the Authstack repo.)",
+				);
 				log.info("");
 			}
 		}

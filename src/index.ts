@@ -22,7 +22,9 @@ function showBanner() {
 }
 
 const program = styledCommand("scalekit")
-	.description("Authstack for devs building AI agents, MCP servers and SaaS apps")
+	.description(
+		"Authstack for devs building AI agents, MCP servers and SaaS apps",
+	)
 	.version(version)
 	.option("--plain", "disable colors and styling (also respects NO_COLOR env)")
 	.option("--json", "output machine-readable JSON")

@@ -27,8 +27,8 @@ vi.mock("../../src/core/downloader.js", () => ({
 import { execFileSync } from "node:child_process";
 import { accessSync } from "node:fs";
 import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
-import { downloadAuthstack } from "../../src/core/downloader.js";
 import { AUTHSTACK_ARCHIVE_DIR } from "../../src/core/authstack.js";
+import { downloadAuthstack } from "../../src/core/downloader.js";
 import { cursorStack } from "../../src/stacks/cursor.js";
 
 const mockExecFileSync = vi.mocked(execFileSync);
@@ -45,7 +45,9 @@ beforeEach(() => {
 	mockCp.mockResolvedValue(undefined);
 	mockRm.mockResolvedValue(undefined);
 	mockMkdtemp.mockResolvedValue("/tmp/scalekit-cursor-abc");
-	mockDownload.mockResolvedValue(`/tmp/scalekit-cursor-abc/${AUTHSTACK_ARCHIVE_DIR}`);
+	mockDownload.mockResolvedValue(
+		`/tmp/scalekit-cursor-abc/${AUTHSTACK_ARCHIVE_DIR}`,
+	);
 });
 
 describe("cursorStack.detect", () => {
