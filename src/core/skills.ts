@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 
-const SKILLS_REPO = "scalekit-inc/skills";
+const SKILLS_REPO = "scalekit-inc/authstack";
 
 export const SKILLS_CMD = `npx skills add ${SKILLS_REPO} --all`;
 

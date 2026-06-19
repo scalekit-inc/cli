@@ -75,9 +75,7 @@ async function runSkillsInstall(): Promise<boolean> {
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		log.error(`Skills installation failed: ${message}`);
-		log.info(
-			`You can install later: ${pc.cyan("npx skills add scalekit-inc/skills")}`,
-		);
+		log.info(`You can install later: ${pc.cyan(SKILLS_CMD)}`);
 		return false;
 	}
 }
@@ -175,7 +173,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			} else {
 				log.info("");
 				log.info("Run this to install skills with the interactive wizard:");
-				log.info(`  ${pc.cyan("npx skills add scalekit-inc/skills")}`);
+				log.info(`  ${pc.cyan(SKILLS_CMD)}`);
 				log.info("");
 			}
 		}
