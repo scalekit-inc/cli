@@ -47,6 +47,7 @@ pnpm unlink --global
    ```bash
    pnpm build
    pnpm lint
+   pnpm test
    ```
 
 3. **Push and open a PR** to `main`:
@@ -61,25 +62,26 @@ pnpm unlink --global
 
 Releases always happen from `main`. Never release from a feature branch.
 
-1. Merge your PR to `main`
-2. Pull latest main locally:
-   ```bash
-   git checkout main && git pull
-   ```
-3. Release:
-   ```bash
-   pnpm release
-   ```
-   `np` will prompt for the version bump (patch, minor, major), publish to npm, and push the tag.
+1. Merge your PR to `main`.
+2. Create a GitHub Release (this is the trigger):
+   - Go to the repo → Releases → Draft a new release.
+   - Create a tag (e.g. `v0.3.13`) that matches the version you want.
+   - The **Release** workflow will run automatically:
+     - Validates the tag matches `package.json` version.
+     - Validates the version is not already published on npm.
+     - Builds, runs publint, and publishes with provenance.
 
-Alternatively, use the **Release** GitHub Action: Actions tab → Release → Run workflow → pick version. This runs as a bot and handles everything automatically.
+Alternatively you can use the GitHub Actions tab: Actions → Release → Run workflow → choose the version. The bot handles tagging and publishing.
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm build` | Build the CLI |
-| `pnpm dev` | Build in watch mode |
-| `pnpm lint` | Check lint + formatting |
-| `pnpm lint:fix` | Auto-fix lint + formatting |
-| `pnpm release` | Publish to npm (from main only) |
+| Command          | Description                          |
+|------------------|--------------------------------------|
+| `pnpm build`     | Build the CLI                        |
+| `pnpm dev`       | Build in watch mode                  |
+| `pnpm test`      | Run unit tests                       |
+| `pnpm test:e2e`  | Run e2e tests (builds first)         |
+| `pnpm lint`      | Check lint + formatting              |
+| `pnpm lint:fix`  | Auto-fix lint + formatting           |
+| `pnpm bump`      | Bump version in package.json         |
+| `pnpm publint`   | Validate package for publishing      |
