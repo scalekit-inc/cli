@@ -8,7 +8,7 @@ USAGE
 
 COMMANDS
   extension|ext  manage Scalekit extensions for coding tools
-  setup          set up ScaleKit auth stacks and skills for your coding agents
+  setup          set up Scalekit auth stacks and skills for your coding agents
 
 OPTIONS
   -V, --version          output the version number
@@ -19,7 +19,7 @@ OPTIONS
 `;
 
 exports[`CLI E2E > shows setup help 1`] = `
-"scalekit setup — set up ScaleKit auth stacks and skills for your coding agents
+"scalekit setup — set up Scalekit auth stacks and skills for your coding agents
 
 USAGE
   $ scalekit setup [options] [command] [stack]
@@ -30,7 +30,7 @@ COMMANDS
 OPTIONS
   -y, --yes      skip confirmation prompts
   --dry-run      show commands without executing
-  --skip-skills  skip Scalekit skills (from authstack)
+  --skip-skills  skip Scalekit skills (from Authstack)
   -h, --help     display help for command
 
 Examples:

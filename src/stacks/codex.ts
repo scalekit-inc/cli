@@ -22,7 +22,7 @@ function buildMarketplaceJson(marketplaceDir: string): string {
 	return JSON.stringify(
 		{
 			name: AUTHSTACK_MARKETPLACE,
-			interface: { displayName: "Scalekit Auth Stack" },
+			interface: { displayName: "Scalekit Authstack" },
 			plugins: AUTHSTACK_KITS.map((kit) => ({
 				name: kit,
 				source: {

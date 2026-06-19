@@ -44,7 +44,7 @@ scalekit setup
 
 Auto-detects installed tools, lets you pick which ones to set up, and installs the auth extensions.
 
-You can also install Scalekit skills (for Cline, Windsurf, Aider, and other agents) from the unified authstack:
+You can also install Scalekit skills (for Cline, Windsurf, Aider, and other agents) from the unified Authstack:
 
 ```bash
 scalekit setup          # choose "Scalekit skills" in the wizard

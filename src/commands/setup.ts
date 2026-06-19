@@ -70,7 +70,7 @@ async function runSkillsInstall(): Promise<boolean> {
 	log.step("Installing skills...");
 	try {
 		await installSkills();
-		log.success("Skills installed from authstack.");
+		log.success("Skills installed from Authstack.");
 		return true;
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -84,7 +84,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const json = isJson(cmd);
 	const nonInteractive = isNonInteractive(cmd);
 
-	if (!json) intro("ScaleKit Setup");
+	if (!json) intro("Scalekit Setup");
 
 	const detected = stacks.filter((s) => s.detect());
 
@@ -106,7 +106,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 					{
 						value: SKILLS_ID,
 						label: "Scalekit skills",
-						hint: "for Cline, Windsurf, Aider & more (via authstack)",
+						hint: "for Cline, Windsurf, Aider & more (via Authstack)",
 					},
 				];
 
@@ -153,7 +153,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			skillsInstalled = await runSkillsInstall();
 		} else {
 			const action = await select({
-				message: "How do you want to install Scalekit skills (from authstack)?",
+				message: "How do you want to install Scalekit skills (from Authstack)?",
 				options: [
 					{
 						value: "auto",
@@ -172,9 +172,9 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 				skillsInstalled = await runSkillsInstall();
 			} else {
 				log.info("");
-				log.info("Run this to install Scalekit skills from authstack:");
+				log.info("Run this to install Scalekit skills from Authstack:");
 				log.info(`  ${pc.cyan(SKILLS_CMD)}`);
-				log.info("  (This pulls skills like setup guidance; the content is maintained in the authstack repo.)");
+				log.info("  (This pulls skills like setup guidance; the content is maintained in the Authstack repo.)");
 				log.info("");
 			}
 		}
@@ -244,7 +244,7 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 	}
 
 	if (!isNonInteractive(cmd) && !opts.dryRun) {
-		intro("ScaleKit Setup");
+		intro("Scalekit Setup");
 		const ok = await confirm({
 			message: `Install ${stack.name} auth stack?`,
 		});
@@ -302,11 +302,11 @@ const setupExtensionShortcut = styledCommand("extension")
 	});
 
 export const setupCommand = styledCommand("setup")
-	.description("set up ScaleKit auth stacks and skills for your coding agents")
+	.description("set up Scalekit auth stacks and skills for your coding agents")
 	.argument("[stack]", "cursor, claude, codex, copilot (or any alias)")
 	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "show commands without executing")
-	.option("--skip-skills", "skip Scalekit skills (from authstack)")
+	.option("--skip-skills", "skip Scalekit skills (from Authstack)")
 	.addCommand(setupExtensionShortcut)
 	.addHelpText(
 		"after",
