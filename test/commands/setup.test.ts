@@ -289,7 +289,7 @@ describe("skills installation", () => {
 		await run([]);
 
 		expect(mockInstallSkills).toHaveBeenCalled();
-		expect(mockLog.success).toHaveBeenCalledWith("Skills installed from authstack.");
+		expect(mockLog.success).toHaveBeenCalledWith("Skills installed from Authstack.");
 	});
 
 	it("interactive: 'I'll do it myself' shows the command", async () => {
