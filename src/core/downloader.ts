@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { writeFile } from "node:fs/promises";
+import { access, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export const AUTHSTACK_URL =
@@ -19,5 +19,13 @@ export async function downloadAuthstack(tmpDir: string): Promise<string> {
 
 	execFileSync("tar", ["-xzf", archivePath, "-C", tmpDir]);
 
-	return join(tmpDir, "authstack-main");
+	const root = join(tmpDir, "authstack-main");
+	try {
+		await access(join(root, "kits"));
+	} catch {
+		throw new Error(
+			"Downloaded authstack archive has unexpected structure (missing kits/ directory)",
+		);
+	}
+	return root;
 }
