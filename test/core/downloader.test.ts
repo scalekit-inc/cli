@@ -6,14 +6,16 @@ vi.mock("node:child_process", () => ({
 
 vi.mock("node:fs/promises", () => ({
 	writeFile: vi.fn(),
+	access: vi.fn(),
 }));
 
 import { execFileSync } from "node:child_process";
-import { writeFile } from "node:fs/promises";
+import { access, writeFile } from "node:fs/promises";
 import { AUTHSTACK_URL, downloadAuthstack } from "../../src/core/downloader.js";
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockWriteFile = vi.mocked(writeFile);
+const mockAccess = vi.mocked(access);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -74,6 +76,22 @@ describe("downloadAuthstack", () => {
 
 		await expect(downloadAuthstack("/tmp/test-dir")).rejects.toThrow(
 			"Download failed: 404",
+		);
+	});
+
+	it("throws when the extracted archive does not contain the expected kits directory", async () => {
+		const fakeBuffer = new ArrayBuffer(8);
+		vi.mocked(fetch).mockResolvedValue({
+			ok: true,
+			arrayBuffer: async () => fakeBuffer,
+		} as Response);
+		mockWriteFile.mockResolvedValue(undefined);
+		// Simulate successful tar that produces a root without kits/
+		mockExecFileSync.mockReturnValue(Buffer.from(""));
+		mockAccess.mockRejectedValue(new Error("ENOENT"));
+
+		await expect(downloadAuthstack("/tmp/test-dir")).rejects.toThrow(
+			"Downloaded authstack archive has unexpected structure",
 		);
 	});
 });

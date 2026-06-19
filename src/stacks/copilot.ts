@@ -1,4 +1,5 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync } from "node:child_process";
+import { runShellCommands } from "../core/shell.js";
 import type { Stack } from "./registry.js";
 
 const CMDS = [
@@ -42,28 +43,10 @@ export const copilotStack: Stack = {
 	},
 
 	async install() {
-		for (const cmd of CMDS) {
-			await new Promise<void>((resolve, reject) => {
-				const child = spawn(cmd, { shell: true, stdio: "inherit" });
-				child.on("close", (code) => {
-					if (code === 0) resolve();
-					else reject(new Error(`"${cmd}" exited with code ${code}`));
-				});
-				child.on("error", reject);
-			});
-		}
+		await runShellCommands(CMDS);
 	},
 
 	async uninstall() {
-		for (const cmd of UNINSTALL_CMDS) {
-			await new Promise<void>((resolve, reject) => {
-				const child = spawn(cmd, { shell: true, stdio: "inherit" });
-				child.on("close", (code) => {
-					if (code === 0) resolve();
-					else reject(new Error(`"${cmd}" exited with code ${code}`));
-				});
-				child.on("error", reject);
-			});
-		}
+		await runShellCommands(UNINSTALL_CMDS);
 	},
 };
