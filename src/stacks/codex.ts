@@ -2,15 +2,20 @@ import { execFileSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { downloadAuthstack } from "../core/downloader.js";
 import {
 	AUTHSTACK_KITS,
 	AUTHSTACK_MARKETPLACE,
 	getSetupCommand,
 } from "../core/authstack.js";
+import { downloadAuthstack } from "../core/downloader.js";
 import type { Stack } from "./registry.js";
 
-const MARKETPLACE_DIR = join(homedir(), ".codex", "marketplaces", AUTHSTACK_MARKETPLACE);
+const MARKETPLACE_DIR = join(
+	homedir(),
+	".codex",
+	"marketplaces",
+	AUTHSTACK_MARKETPLACE,
+);
 const PERSONAL_MARKETPLACE = join(
 	homedir(),
 	".agents",

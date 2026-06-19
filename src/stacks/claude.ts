@@ -3,12 +3,12 @@ import { readdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import semver from "semver";
-import { runShellCommands } from "../core/shell.js";
 import {
 	AUTHSTACK_MARKETPLACE,
 	getPluginMarketplaceCommands,
 	getPluginUninstallCommands,
 } from "../core/authstack.js";
+import { runShellCommands } from "../core/shell.js";
 import type { Stack, VersionStatus } from "./registry.js";
 
 const CMDS = getPluginMarketplaceCommands("claude");

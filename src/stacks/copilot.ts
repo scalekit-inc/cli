@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { runShellCommands } from "../core/shell.js";
 import {
 	AUTHSTACK_MARKETPLACE,
 	getPluginMarketplaceCommands,
 	getPluginUninstallCommands,
 } from "../core/authstack.js";
+import { runShellCommands } from "../core/shell.js";
 import type { Stack } from "./registry.js";
 
 const CMDS = getPluginMarketplaceCommands("copilot");
