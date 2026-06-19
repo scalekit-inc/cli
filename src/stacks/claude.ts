@@ -6,21 +6,13 @@ import semver from "semver";
 import { runShellCommands } from "../core/shell.js";
 import {
 	AUTHSTACK_MARKETPLACE,
-	AUTHSTACK_REPO,
+	getPluginMarketplaceCommands,
+	getPluginUninstallCommands,
 } from "../core/authstack.js";
 import type { Stack, VersionStatus } from "./registry.js";
 
-const CMDS = [
-	`claude plugin marketplace add ${AUTHSTACK_REPO}`,
-	`claude plugin install agentkit@${AUTHSTACK_MARKETPLACE}`,
-	`claude plugin install saaskit@${AUTHSTACK_MARKETPLACE}`,
-];
-
-const UNINSTALL_CMDS = [
-	`claude plugin uninstall agentkit@${AUTHSTACK_MARKETPLACE}`,
-	`claude plugin uninstall saaskit@${AUTHSTACK_MARKETPLACE}`,
-	`claude plugin marketplace remove ${AUTHSTACK_MARKETPLACE}`,
-];
+const CMDS = getPluginMarketplaceCommands("claude");
+const UNINSTALL_CMDS = getPluginUninstallCommands("claude");
 
 const MARKETPLACE_ID = AUTHSTACK_MARKETPLACE;
 const PLUGIN_NAME = "agentkit";

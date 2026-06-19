@@ -153,7 +153,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			skillsInstalled = await runSkillsInstall();
 		} else {
 			const action = await select({
-				message: "How do you want to install skills?",
+				message: "How do you want to install Scalekit skills (from authstack)?",
 				options: [
 					{
 						value: "auto",
@@ -174,6 +174,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 				log.info("");
 				log.info("Run this to install Scalekit skills from authstack:");
 				log.info(`  ${pc.cyan(SKILLS_CMD)}`);
+				log.info("  (This pulls skills like setup guidance; the content is maintained in the authstack repo.)");
 				log.info("");
 			}
 		}
@@ -316,7 +317,7 @@ Examples:
   $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
   $ scalekit setup --dry-run    preview commands without running them
-  $ scalekit setup --skip-skills  set up agents only, skip skills`,
+  $ scalekit setup --skip-skills          stacks only (skip Scalekit skills)`,
 	)
 	.action(
 		async (stackId: string | undefined, opts: SetupOpts, cmd: Command) => {

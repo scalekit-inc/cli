@@ -95,7 +95,7 @@ export const codexStack: Stack = {
 			await cp(autostackRoot, MARKETPLACE_DIR, { recursive: true });
 
 			const existingName = await readMarketplaceName();
-			if (existingName === null || existingName === "authstack") {
+			if (existingName === null || existingName === AUTHSTACK_MARKETPLACE) {
 				await writePersonalMarketplace();
 			}
 		} finally {
@@ -106,7 +106,7 @@ export const codexStack: Stack = {
 	async uninstall() {
 		await rm(MARKETPLACE_DIR, { recursive: true, force: true });
 		const existingName = await readMarketplaceName();
-		if (existingName === "authstack") {
+		if (existingName === AUTHSTACK_MARKETPLACE) {
 			await rm(PERSONAL_MARKETPLACE, { force: true });
 		}
 	},

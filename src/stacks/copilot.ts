@@ -2,21 +2,13 @@ import { execFileSync } from "node:child_process";
 import { runShellCommands } from "../core/shell.js";
 import {
 	AUTHSTACK_MARKETPLACE,
-	AUTHSTACK_REPO,
+	getPluginMarketplaceCommands,
+	getPluginUninstallCommands,
 } from "../core/authstack.js";
 import type { Stack } from "./registry.js";
 
-const CMDS = [
-	`copilot plugin marketplace add ${AUTHSTACK_REPO}`,
-	`copilot plugin install agentkit@${AUTHSTACK_MARKETPLACE}`,
-	`copilot plugin install saaskit@${AUTHSTACK_MARKETPLACE}`,
-];
-
-const UNINSTALL_CMDS = [
-	`copilot plugin uninstall agentkit@${AUTHSTACK_MARKETPLACE}`,
-	`copilot plugin uninstall saaskit@${AUTHSTACK_MARKETPLACE}`,
-	`copilot plugin marketplace remove ${AUTHSTACK_MARKETPLACE}`,
-];
+const CMDS = getPluginMarketplaceCommands("copilot");
+const UNINSTALL_CMDS = getPluginUninstallCommands("copilot");
 
 export const copilotStack: Stack = {
 	id: "copilot",
