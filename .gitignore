@@ -6,3 +6,6 @@ package-lock.json
 .local/
 docs/
 plans/
+.agents/
+agent/
+skills-lock.json
