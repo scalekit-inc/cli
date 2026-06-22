@@ -128,8 +128,9 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			process.exit(0);
 		}
 
-		installSkillsSelected = selected.includes(SKILLS_ID);
-		toInstall = stacks.filter((s) => selected.includes(s.id));
+		const selectedIds = selected as string[];
+		installSkillsSelected = selectedIds.includes(SKILLS_ID);
+		toInstall = stacks.filter((s) => selectedIds.includes(s.id));
 	}
 
 	const results: StackResult[] = [];
@@ -229,6 +230,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		);
 	} else {
 		outro(`Done. ${succeeded} succeeded, ${failed} failed.`);
+		process.exit(1);
 	}
 }
 

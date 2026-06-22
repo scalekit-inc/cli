@@ -98,4 +98,14 @@ describe("downloadAuthstack", () => {
 			"Downloaded authstack archive has unexpected structure",
 		);
 	});
+
+	it("throws when AUTHSTACK_SOURCE_DIR points to a tree without kits/", async () => {
+		vi.stubEnv("AUTHSTACK_SOURCE_DIR", "/local/bad-authstack");
+		mockAccess.mockRejectedValue(new Error("ENOENT"));
+
+		await expect(downloadAuthstack("/tmp/ignored")).rejects.toThrow(
+			"Downloaded authstack archive has unexpected structure",
+		);
+		expect(mockAccess).toHaveBeenCalledWith("/local/bad-authstack/kits");
+	});
 });
