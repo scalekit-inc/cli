@@ -95,6 +95,88 @@ async function installExtension(
 	}
 }
 
+async function updateExtension(
+	name: string,
+	opts: { yes?: boolean; dryRun?: boolean },
+	cmd: Command,
+) {
+	const json = isJson(cmd);
+	const stack = findStack(name);
+
+	if (!stack) {
+		if (json) {
+			jsonErr(
+				`Unknown extension "${name}". Available: ${availableNames().join(", ")}`,
+			);
+		}
+		log.error(
+			`Unknown extension "${name}". Available: ${availableNames().join(", ")}`,
+		);
+		process.exit(1);
+	}
+
+	if (!isNonInteractive(cmd) && !opts.dryRun) {
+		const ok = await confirm({
+			message: `Update ${stack.name} auth stack?`,
+		});
+		if (isCancel(ok) || !ok) {
+			cancel("Cancelled.");
+			process.exit(0);
+		}
+	}
+
+	if (opts.dryRun) {
+		if (json) {
+			jsonOut({
+				extension: stack.id,
+				name: stack.name,
+				status: "dry_run",
+				commands: stack.commands,
+			});
+			return;
+		}
+		for (const c of stack.commands) {
+			log.info(`Would run: ${c}`);
+		}
+		log.info("Dry run — no commands were executed.");
+		return;
+	}
+
+	if (!json) {
+		for (const c of stack.commands) {
+			log.info(`$ ${c}`);
+		}
+	}
+
+	try {
+		await stack.install();
+		await cacheInvalidate(stack.id);
+		if (json) {
+			jsonOut({
+				extension: stack.id,
+				name: stack.name,
+				status: "updated",
+				nextSteps: stack.nextSteps ?? [],
+			});
+		} else {
+			log.success(`${stack.name} — updated`);
+			if (stack.nextSteps?.length) {
+				log.info(pc.bold("\nNext steps:"));
+				for (const step of stack.nextSteps) {
+					log.info(`  ${pc.dim("→")} ${step}`);
+				}
+			}
+		}
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		if (json) {
+			jsonErr(`${stack.name} failed: ${message}`);
+		}
+		log.error(`${stack.name} failed: ${message}`);
+		process.exit(1);
+	}
+}
+
 function listExtensions(cmd: Command) {
 	if (isJson(cmd)) {
 		jsonOut(
@@ -129,6 +211,16 @@ const installCmd = styledCommand("install")
 	.option("--dry-run", "preview commands without executing")
 	.action(async (name: string, opts, cmd: Command) => {
 		await installExtension(name, opts, cmd);
+	});
+
+const updateCmd = styledCommand("update")
+	.alias("up")
+	.description("update an extension")
+	.argument("<name>", "extension to update (cursor, claude, codex, copilot)")
+	.option("-y, --yes", "skip confirmation")
+	.option("--dry-run", "preview commands without executing")
+	.action(async (name: string, opts, cmd: Command) => {
+		await updateExtension(name, opts, cmd);
 	});
 
 async function uninstallExtension(
@@ -309,7 +401,9 @@ async function showSingleStatus(stackId: string, cmd: Command) {
 			log.warn(
 				`${stack.name} auth stack: outdated (v${vs.installedVersion} → v${vs.latestVersion})`,
 			);
-			log.info(`Run ${pc.cyan(`scalekit setup ${stack.id}`)} to update.`);
+			log.info(
+				`Run ${pc.cyan(`scalekit extension update ${stack.id}`)} (or sk ext update ${stack.id}) to update.`,
+			);
 			process.exit(1);
 			break;
 		case "not_installed":
@@ -341,6 +435,7 @@ export const extensionCommand = styledCommand("extension")
 	.alias("ext")
 	.description("manage Scalekit extensions for coding tools")
 	.addCommand(installCmd)
+	.addCommand(updateCmd)
 	.addCommand(uninstallCmd)
 	.addCommand(listCmd)
 	.addCommand(statusCmd);

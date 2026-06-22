@@ -440,3 +440,97 @@ describe("extension uninstall error handling", () => {
 		);
 	});
 });
+
+describe("extension update --dry-run", () => {
+	it("shows commands without executing for cursor", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install");
+
+		await run(["update", "cursor", "--dry-run"]);
+
+		for (const cmd of cursor.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+		expect(cursor.install).not.toHaveBeenCalled();
+	});
+
+	it("resolves alias cc to claude", async () => {
+		await run(["update", "cc", "--dry-run"]);
+
+		const claude = stacks[1];
+		for (const cmd of claude.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+
+	it("resolves alias up", async () => {
+		await run(["up", "cursor", "--dry-run"]);
+
+		const cursor = stacks[0];
+		for (const cmd of cursor.commands) {
+			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
+		}
+	});
+});
+
+describe("extension update with confirmation", () => {
+	it("updates when user confirms", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install").mockResolvedValue();
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["update", "cursor"]);
+
+		expect(mockConfirm).toHaveBeenCalled();
+		expect(cursor.install).toHaveBeenCalled();
+		expect(mockLog.success).toHaveBeenCalledWith("Cursor — updated");
+	});
+
+	it("invalidates cache after update", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install").mockResolvedValue();
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run(["update", "cursor"]);
+
+		expect(mockCacheInvalidate).toHaveBeenCalledWith("cursor");
+	});
+
+	it("exits when user declines", async () => {
+		mockConfirm.mockResolvedValue(false as never);
+
+		await expect(run(["update", "cursor"])).rejects.toThrow("process.exit(0)");
+		expect(cancel).toHaveBeenCalledWith("Cancelled.");
+	});
+});
+
+describe("extension update --yes", () => {
+	it("skips confirmation prompt", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install").mockResolvedValue();
+
+		await run(["update", "cursor", "--yes"]);
+
+		expect(mockConfirm).not.toHaveBeenCalled();
+		expect(cursor.install).toHaveBeenCalled();
+	});
+});
+
+describe("extension update error handling", () => {
+	it("exits 1 for unknown extension", async () => {
+		await expect(run(["update", "unknown"])).rejects.toThrow("process.exit(1)");
+		expect(mockLog.error).toHaveBeenCalledWith(
+			expect.stringContaining('Unknown extension "unknown"'),
+		);
+	});
+
+	it("exits 1 when update fails", async () => {
+		vi.spyOn(stacks[0], "install").mockRejectedValue(new Error("update broke"));
+		mockConfirm.mockResolvedValue(true as never);
+
+		await expect(run(["update", "cursor"])).rejects.toThrow("process.exit(1)");
+		expect(mockLog.error).toHaveBeenCalledWith(
+			expect.stringContaining("update broke"),
+		);
+	});
+});

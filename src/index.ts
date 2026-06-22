@@ -1,7 +1,10 @@
 import { createRequire } from "node:module";
 import cfonts from "cfonts";
+import type { Command } from "commander";
 import { extensionCommand } from "./commands/extension.js";
 import { setupCommand } from "./commands/setup.js";
+import { updateCommand } from "./commands/update.js";
+import { checkAndPromptForCliUpdateOnRoot } from "./core/cli-update.js";
 import { styledCommand } from "./core/help.js";
 
 const require = createRequire(import.meta.url);
@@ -34,9 +37,12 @@ const program = styledCommand("scalekit")
 
 program.addCommand(extensionCommand);
 program.addCommand(setupCommand);
+program.addCommand(updateCommand);
 
-program.action(() => {
+program.action(async (_opts: unknown, cmd: Command) => {
 	if (!program.opts().json) showBanner();
+	// best-effort check + optional y/N prompt (only when interactive)
+	await checkAndPromptForCliUpdateOnRoot(cmd);
 	program.help();
 });
 
