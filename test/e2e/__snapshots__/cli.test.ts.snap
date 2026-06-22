@@ -9,6 +9,7 @@ USAGE
 COMMANDS
   extension|ext  manage Scalekit extensions for coding tools
   setup          set up Scalekit auth stacks and skills for your coding agents
+  update         update the Scalekit CLI itself
 
 OPTIONS
   -V, --version          output the version number

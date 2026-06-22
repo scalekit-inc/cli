@@ -1,6 +1,5 @@
-import { spawn } from "node:child_process";
-
 import { AUTHSTACK_REPO } from "./authstack.js";
+import { runShellCommands } from "./shell.js";
 
 // Skills (including setup guidance) are served from the same unified
 // scalekit-inc/authstack repo used for the editor stacks/plugins.
@@ -11,15 +10,5 @@ const SKILLS_REPO = AUTHSTACK_REPO;
 export const SKILLS_CMD = `npx skills add ${SKILLS_REPO} --all`;
 
 export async function installSkills(): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const child = spawn("npx", ["skills", "add", SKILLS_REPO, "--all"], {
-			shell: true,
-			stdio: "inherit",
-		});
-		child.on("close", (code) => {
-			if (code === 0) resolve();
-			else reject(new Error(`"${SKILLS_CMD}" exited with code ${code}`));
-		});
-		child.on("error", reject);
-	});
+	await runShellCommands([SKILLS_CMD]);
 }

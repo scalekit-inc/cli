@@ -61,6 +61,15 @@ scalekit setup claude -y            # or: sk setup cc -y
 scalekit setup copilot --dry-run    # or: sk setup ghcp --dry-run
 ```
 
+### Updating
+
+```bash
+scalekit update                    # update the CLI itself
+scalekit extension update cursor   # or: sk ext up cursor
+```
+
+`update` keeps the Scalekit CLI current. To update auth stacks (extensions) for a specific tool use `extension update` (or `ext up`).
+
 ### Uninstall
 
 ```bash
@@ -75,6 +84,7 @@ For scriptable, noun-verb access:
 
 ```bash
 scalekit extension install cursor    # or: ext i cursor
+scalekit extension update cursor     # or: ext up cursor
 scalekit extension install cc        # alias for claude
 scalekit extension uninstall cursor  # or: ext rm cursor
 scalekit extension list              # or: ext ls
@@ -101,7 +111,9 @@ scalekit setup                        interactive setup wizard (stacks + skills)
 scalekit setup <tool>                 set up a specific tool
 scalekit setup --skip-skills          stacks only, skip skills
 
+scalekit update                       update the Scalekit CLI itself
 scalekit extension install <id>       install by id or alias    (alias: ext i)
+scalekit extension update <id>        update a stack (alias: ext up)
 scalekit extension uninstall <id>     uninstall by id or alias  (alias: ext rm)
 scalekit extension list               list available extensions  (alias: ext ls)
 scalekit extension status [id]        check installed version

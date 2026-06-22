@@ -8,7 +8,16 @@ export { AUTHSTACK_URL };
 
 export async function downloadAuthstack(tmpDir: string): Promise<string> {
 	const sourceDir = process.env.AUTHSTACK_SOURCE_DIR;
-	if (sourceDir) return sourceDir;
+	if (sourceDir) {
+		try {
+			await access(join(sourceDir, "kits"));
+		} catch {
+			throw new Error(
+				"Downloaded authstack archive has unexpected structure (missing kits/ directory)",
+			);
+		}
+		return sourceDir;
+	}
 
 	const archivePath = join(tmpDir, "authstack.tar.gz");
 

@@ -8,6 +8,18 @@ describe("CLI E2E", () => {
 		expect(cleanStdout).toMatchSnapshot();
 	});
 
+	it("shows update in top level help", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["--help"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("update");
+	});
+
+	it("shows update command help", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["update", "--help"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("update the Scalekit CLI itself");
+	});
+
 	it("shows version", async () => {
 		const { exitCode, cleanStdout } = await runCLI(["--version"]);
 		expect(exitCode).toBe(0);
@@ -29,6 +41,12 @@ describe("CLI E2E", () => {
 		expect(exitCode).toBe(0);
 		expect(cleanStdout).toContain("Would run");
 	});
+
+	it("update --dry-run prints npm command", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["update", "--dry-run"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("npm install -g @scalekit-inc/cli@latest");
+	});
 });
 
 describe("extension E2E", () => {
@@ -46,6 +64,12 @@ describe("extension E2E", () => {
 		const { exitCode, cleanStdout } = await runCLI(["ext", "--help"]);
 		expect(exitCode).toBe(0);
 		expect(cleanStdout).toContain("COMMANDS");
+	});
+
+	it("ext update help shows update command", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["ext", "update", "--help"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("update an extension");
 	});
 
 	it("ext ls lists extensions", async () => {

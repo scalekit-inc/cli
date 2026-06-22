@@ -29,9 +29,10 @@ const SETTINGS_PATH = join(homedir(), ".claude", "settings.json");
 async function getInstalledVersion(): Promise<string | undefined> {
 	try {
 		const entries = await readdir(PLUGIN_DIR);
-		const versions = entries.filter((e) => semver.valid(e));
+		const versions = entries.filter((e: string) => semver.valid(e));
 		if (versions.length === 0) return undefined;
-		return semver.rsort(versions)[0];
+		const sorted = semver.rsort(versions);
+		return sorted[0] ? String(sorted[0]) : undefined;
 	} catch {
 		return undefined;
 	}
