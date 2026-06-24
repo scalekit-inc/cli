@@ -18,6 +18,10 @@ vi.mock("../../src/core/skills.js", () => ({
 	SKILLS_CMD: `npx skills add ${AUTHSTACK_REPO} --all`,
 }));
 
+vi.mock("../../src/core/beacon.js", () => ({
+	emitSetupBeacon: vi.fn(),
+}));
+
 import {
 	cancel,
 	confirm,
@@ -27,6 +31,7 @@ import {
 	select,
 } from "@clack/prompts";
 import { setupCommand } from "../../src/commands/setup.js";
+import { emitSetupBeacon } from "../../src/core/beacon.js";
 import { installSkills } from "../../src/core/skills.js";
 import { stacks } from "../../src/stacks/registry.js";
 
@@ -36,6 +41,7 @@ const mockSelect = vi.mocked(select);
 const mockConfirm = vi.mocked(confirm);
 const mockIsCancel = vi.mocked(isCancel);
 const mockInstallSkills = vi.mocked(installSkills);
+const mockEmitSetupBeacon = vi.mocked(emitSetupBeacon);
 
 function stubStacks(opts: { detect?: boolean; installError?: Error } = {}) {
 	for (const stack of stacks) {
@@ -57,6 +63,7 @@ async function run(args: string[]) {
 beforeEach(() => {
 	vi.clearAllMocks();
 	mockIsCancel.mockReturnValue(false);
+	mockEmitSetupBeacon.mockClear();
 	vi.spyOn(process, "exit").mockImplementation((code?: number) => {
 		throw new Error(`process.exit(${code})`);
 	});
@@ -93,6 +100,24 @@ describe("setup --yes", () => {
 		expect(claude.install).toHaveBeenCalled();
 		expect(codex.install).not.toHaveBeenCalled();
 		expect(copilot.install).not.toHaveBeenCalled();
+
+		// Beacon should be emitted for chosen stacks (initiated + final)
+		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
+			"cursor",
+			expect.objectContaining({ status: "initiated" }),
+		);
+		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
+			"cursor",
+			expect.objectContaining({ status: "succeeded" }),
+		);
+		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
+			"claude",
+			expect.objectContaining({ status: "initiated" }),
+		);
+		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
+			"claude",
+			expect.objectContaining({ status: "succeeded" }),
+		);
 	});
 
 	it("installs all stacks when none detected", async () => {
@@ -113,6 +138,23 @@ describe("setup <stack> --dry-run", () => {
 		for (const cmd of cursor.commands) {
 			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
 		}
+
+		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
+			"cursor",
+			expect.objectContaining({
+				mode: "direct",
+				dryRun: true,
+				status: "initiated",
+			}),
+		);
+		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
+			"cursor",
+			expect.objectContaining({
+				mode: "direct",
+				dryRun: true,
+				status: "succeeded",
+			}),
+		);
 	});
 });
 
@@ -200,6 +242,12 @@ describe("setup with aliases", () => {
 		for (const cmd of claude.commands) {
 			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
 		}
+
+		// Beacon uses resolved stack id (not the alias)
+		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
+			"claude",
+			expect.objectContaining({ mode: "direct", dryRun: true }),
+		);
 	});
 
 	it("setup opencode --dry-run resolves codex alias", async () => {
