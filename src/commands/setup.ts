@@ -10,6 +10,7 @@ import {
 } from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { emitSetupBeacon } from "../core/beacon.js";
 import { styledCommand } from "../core/help.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
 import { installSkills, SKILLS_CMD } from "../core/skills.js";
@@ -137,8 +138,24 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 
 	for (const stack of toInstall) {
 		if (!json) log.step(`Setting up ${stack.name}...`);
+
+		emitSetupBeacon(stack.id, {
+			mode: "interactive",
+			dryRun: !!opts.dryRun,
+			status: "initiated",
+		});
+
 		const result = await runStack(stack, !!opts.dryRun, json);
 		results.push(result);
+
+		const interactiveFinal =
+			result.status === "failed" ? "failed" : "succeeded";
+		emitSetupBeacon(stack.id, {
+			mode: "interactive",
+			dryRun: !!opts.dryRun,
+			status: interactiveFinal,
+		});
+
 		if (!json && result.status !== "failed") {
 			log.success(`${stack.name} — done`);
 		}
@@ -150,8 +167,29 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	if (installSkillsSelected) {
 		if (opts.dryRun) {
 			if (!json) log.info(`Would run: ${SKILLS_CMD}`);
+			emitSetupBeacon("skills", {
+				mode: "interactive",
+				dryRun: true,
+				status: "initiated",
+			});
+			emitSetupBeacon("skills", {
+				mode: "interactive",
+				dryRun: true,
+				status: "succeeded",
+			});
 		} else if (nonInteractive) {
+			emitSetupBeacon("skills", {
+				mode: "interactive",
+				dryRun: !!opts.dryRun,
+				status: "initiated",
+			});
 			skillsInstalled = await runSkillsInstall();
+			const skillsFinal = skillsInstalled ? "succeeded" : "failed";
+			emitSetupBeacon("skills", {
+				mode: "interactive",
+				dryRun: !!opts.dryRun,
+				status: skillsFinal,
+			});
 		} else {
 			const action = await select({
 				message: "How do you want to install Scalekit skills (from Authstack)?",
@@ -170,7 +208,18 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			});
 
 			if (!isCancel(action) && action === "auto") {
+				emitSetupBeacon("skills", {
+					mode: "interactive",
+					dryRun: !!opts.dryRun,
+					status: "initiated",
+				});
 				skillsInstalled = await runSkillsInstall();
+				const skillsFinal = skillsInstalled ? "succeeded" : "failed";
+				emitSetupBeacon("skills", {
+					mode: "interactive",
+					dryRun: !!opts.dryRun,
+					status: skillsFinal,
+				});
 			} else {
 				log.info("");
 				log.info("Run this to install Scalekit skills from Authstack:");
@@ -259,7 +308,21 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 	}
 
 	if (!json) log.step(`Setting up ${stack.name}...`);
+
+	emitSetupBeacon(stack.id, {
+		mode: "direct",
+		dryRun: !!opts.dryRun,
+		status: "initiated",
+	});
+
 	const result = await runStack(stack, !!opts.dryRun, json);
+
+	const directFinal = result.status === "failed" ? "failed" : "succeeded";
+	emitSetupBeacon(stack.id, {
+		mode: "direct",
+		dryRun: !!opts.dryRun,
+		status: directFinal,
+	});
 
 	if (json) {
 		if (result.status === "failed") {
