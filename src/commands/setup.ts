@@ -67,10 +67,10 @@ async function runStack(
 	}
 }
 
-async function runSkillsInstall(): Promise<boolean> {
+async function runSkillsInstall(autoYes = false): Promise<boolean> {
 	log.step("Installing skills...");
 	try {
-		await installSkills();
+		await installSkills(autoYes);
 		log.success("Skills installed from Authstack.");
 		return true;
 	} catch (err) {
@@ -183,7 +183,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 				dryRun: !!opts.dryRun,
 				status: "initiated",
 			});
-			skillsInstalled = await runSkillsInstall();
+			skillsInstalled = await runSkillsInstall(true);
 			const skillsFinal = skillsInstalled ? "succeeded" : "failed";
 			emitSetupBeacon("skills", {
 				mode: "interactive",
@@ -213,7 +213,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 					dryRun: !!opts.dryRun,
 					status: "initiated",
 				});
-				skillsInstalled = await runSkillsInstall();
+				skillsInstalled = await runSkillsInstall(true);
 				const skillsFinal = skillsInstalled ? "succeeded" : "failed";
 				emitSetupBeacon("skills", {
 					mode: "interactive",
