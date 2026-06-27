@@ -15,7 +15,7 @@ vi.mock("@clack/prompts", () => ({
 
 vi.mock("../../src/core/skills.js", () => ({
 	installSkills: vi.fn(() => Promise.resolve()),
-	SKILLS_CMD: `npx skills add ${AUTHSTACK_REPO} --all`,
+	SKILLS_CMD: `npx skills add ${AUTHSTACK_REPO} --skill '*' --agent '*' -g`,
 }));
 
 vi.mock("../../src/core/beacon.js", () => ({
@@ -309,7 +309,7 @@ describe("skills installation", () => {
 		stubStacks({ detect: true });
 		await run(["--yes"]);
 
-		expect(mockInstallSkills).toHaveBeenCalled();
+		expect(mockInstallSkills).toHaveBeenCalledWith(true);
 	});
 
 	it("--yes --skip-skills skips skills", async () => {
@@ -325,7 +325,7 @@ describe("skills installation", () => {
 
 		expect(mockInstallSkills).not.toHaveBeenCalled();
 		expect(mockLog.info).toHaveBeenCalledWith(
-			`Would run: npx skills add ${AUTHSTACK_REPO} --all`,
+			`Would run: npx skills add ${AUTHSTACK_REPO} --skill '*' --agent '*' -g`,
 		);
 	});
 
@@ -336,7 +336,7 @@ describe("skills installation", () => {
 
 		await run([]);
 
-		expect(mockInstallSkills).toHaveBeenCalled();
+		expect(mockInstallSkills).toHaveBeenCalledWith(true);
 		expect(mockLog.success).toHaveBeenCalledWith(
 			"Skills installed from Authstack.",
 		);

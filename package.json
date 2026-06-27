@@ -1,6 +1,6 @@
 {
 	"name": "@scalekit-inc/cli",
-	"version": "0.3.20",
+	"version": "0.3.21",
 	"description": "Scalekit CLI",
 	"type": "module",
 	"bin": {
@@ -45,6 +45,7 @@
 		"@clack/prompts": "^1.4.0",
 		"cfonts": "^3.3.1",
 		"commander": "^14.0.3",
+		"fp-ts": "^2.16.11",
 		"picocolors": "^1.1.1",
 		"semver": "^7.8.0"
 	},
