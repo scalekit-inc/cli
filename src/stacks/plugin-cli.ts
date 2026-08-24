@@ -4,6 +4,7 @@ import {
 } from "../core/authstack.js";
 import { runShellCommands } from "../core/shell.js";
 import { detectOnPath } from "./detect.js";
+import { checkKitPresent } from "./kit-present.js";
 import type { ApplyOpts, Stack } from "./registry.js";
 import { stubCheckVersion } from "./version-stub.js";
 
@@ -16,12 +17,17 @@ export type PluginCliRow = {
 	nextSteps?: string[];
 	tryItNow?: string;
 	checkVersion?: Stack["checkVersion"];
+	kitPresent?: {
+		kitDirs: () => string[];
+		manifestRel: string;
+	};
 };
 
 export function pluginCliStack(row: PluginCliRow): Stack {
 	const cmds = getPluginMarketplaceCommands(row.tool);
 	const uninstallCmds = getPluginUninstallCommands(row.tool);
 	const detect = () => detectOnPath(row.tool);
+	const kitPresent = row.kitPresent;
 
 	return {
 		id: row.id,
@@ -39,6 +45,10 @@ export function pluginCliStack(row: PluginCliRow): Stack {
 			if (!opts?.preview) await runShellCommands(uninstallCmds);
 			return uninstallCmds;
 		},
-		checkVersion: row.checkVersion ?? stubCheckVersion(detect),
+		checkVersion:
+			row.checkVersion ??
+			(kitPresent
+				? () => checkKitPresent(kitPresent)
+				: stubCheckVersion(detect)),
 	};
 }

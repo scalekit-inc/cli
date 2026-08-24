@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { AUTHSTACK_MARKETPLACE } from "../core/authstack.js";
+import { AUTHSTACK_KITS, AUTHSTACK_MARKETPLACE } from "../core/authstack.js";
 import { checkClaudeVersion } from "./claude-version.js";
 import { cursorConfigDir, filesystemStack } from "./filesystem.js";
 import { pluginCliStack } from "./plugin-cli.js";
@@ -19,6 +19,13 @@ export const stackTable: Stack[] = [
 		placement: {
 			kind: "kits",
 			destDir: () => join(homedir(), ".cursor", "plugins", "local"),
+		},
+		kitPresent: {
+			kitDirs: () =>
+				AUTHSTACK_KITS.map((kit) =>
+					join(homedir(), ".cursor", "plugins", "local", kit),
+				),
+			manifestRel: ".cursor-plugin",
 		},
 		tryItNow:
 			'Open Cursor → ⌘L → Ask: "Analyze my project and suggest how Scalekit can power it"',
@@ -53,6 +60,20 @@ export const stackTable: Stack[] = [
 				oursName: AUTHSTACK_MARKETPLACE,
 			},
 		},
+		kitPresent: {
+			kitDirs: () =>
+				AUTHSTACK_KITS.map((kit) =>
+					join(
+						homedir(),
+						".codex",
+						"marketplaces",
+						AUTHSTACK_MARKETPLACE,
+						"kits",
+						kit,
+					),
+				),
+			manifestRel: ".codex-plugin",
+		},
 		nextSteps: ["Run `codex mcp login scalekit` to authenticate"],
 		tryItNow:
 			'codex "Analyze my project and suggest how Scalekit can power it"',
@@ -63,6 +84,19 @@ export const stackTable: Stack[] = [
 		description: "Scalekit auth plugins for GitHub Copilot",
 		aliases: ["github-copilot", "ghcp"],
 		tool: "copilot",
+		kitPresent: {
+			kitDirs: () =>
+				AUTHSTACK_KITS.map((kit) =>
+					join(
+						homedir(),
+						".copilot",
+						"installed-plugins",
+						AUTHSTACK_MARKETPLACE,
+						kit,
+					),
+				),
+			manifestRel: ".github/plugin",
+		},
 		nextSteps: [
 			"Run `copilot` to start a session",
 			`To update later: \`copilot plugin update agentkit@${AUTHSTACK_MARKETPLACE}\``,

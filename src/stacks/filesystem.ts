@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { AUTHSTACK_KITS, AUTHSTACK_MARKETPLACE } from "../core/authstack.js";
 import { downloadAuthstack } from "../core/downloader.js";
 import { detectConfigOrPath, detectOnPath } from "./detect.js";
+import { checkKitPresent } from "./kit-present.js";
 import type { ApplyOpts, Stack } from "./registry.js";
 import { stubCheckVersion } from "./version-stub.js";
 
@@ -32,6 +33,10 @@ export type FilesystemRow = {
 	nextSteps?: string[];
 	tryItNow?: string;
 	checkVersion?: Stack["checkVersion"];
+	kitPresent?: {
+		kitDirs: () => string[];
+		manifestRel: string;
+	};
 };
 
 function buildMarketplaceJson(marketplaceDir: string): string {
@@ -99,6 +104,7 @@ function makeDetect(spec: FilesystemDetect): () => boolean {
 export function filesystemStack(row: FilesystemRow): Stack {
 	const detect = makeDetect(row.detect);
 	const { placement } = row;
+	const kitPresent = row.kitPresent;
 
 	return {
 		id: row.id,
@@ -167,7 +173,11 @@ export function filesystemStack(row: FilesystemRow): Stack {
 			}
 			return steps;
 		},
-		checkVersion: row.checkVersion ?? stubCheckVersion(detect),
+		checkVersion:
+			row.checkVersion ??
+			(kitPresent
+				? () => checkKitPresent(kitPresent)
+				: stubCheckVersion(detect)),
 	};
 }
 
