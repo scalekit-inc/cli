@@ -39,7 +39,7 @@ describe("CLI E2E", () => {
 			"--yes",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("npx skills add");
 	});
 
 	it("update --dry-run prints npm command", async () => {
@@ -305,7 +305,7 @@ describe("--non-interactive flag", () => {
 			"--dry-run",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("npx skills add");
 		expect(cleanStdout).toContain("Dry run");
 	});
 
@@ -316,7 +316,7 @@ describe("--non-interactive flag", () => {
 			"--dry-run",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("npx skills add");
 	});
 
 	it("ext i cursor --non-interactive --dry-run skips confirm", async () => {

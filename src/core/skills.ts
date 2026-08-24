@@ -29,18 +29,21 @@ const dropPatterns = [
 	/^■\s+Failed to install/,
 ];
 
-const isDropLine = (line: string): boolean =>
-	pipe(
+export function isSkillsNoiseLine(line: string): boolean {
+	return pipe(
 		dropPatterns,
 		A.some((pattern) => pattern.test(line)),
 	);
+}
 
-const skillsFilter: RunShellOptions["filter"] = (line) => !isDropLine(line);
+const skillsFilter: RunShellOptions["filter"] = (line) =>
+	!isSkillsNoiseLine(line);
 
-export async function installSkills(yes = false): Promise<void> {
-	// When the CLI triggers skills install (user selected or --yes),
-	// we always run with -g (to avoid polluting the dev's project dir with
-	// local .agents/skills etc) and -y when auto/non-interactive.
-	const cmd = buildSkillsCommand({ yes });
-	await runShellCommands([cmd], { filter: skillsFilter });
+export async function installSkills(
+	opts: { preview?: boolean; yes?: boolean } = {},
+): Promise<string[]> {
+	const steps = [buildSkillsCommand({ yes: !!opts.yes })];
+	if (opts.preview) return steps;
+	await runShellCommands(steps, { filter: skillsFilter });
+	return steps;
 }

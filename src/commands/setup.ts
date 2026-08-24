@@ -9,31 +9,17 @@ import {
 } from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { applySkills } from "../core/apply-skills.js";
 import { type ApplyResult, applyStack } from "../core/apply-stack.js";
-import { emitSetupBeacon } from "../core/beacon.js";
 import { styledCommand } from "../core/help.js";
 import { isJson, isNonInteractive, jsonOut } from "../core/output.js";
-import { installSkills, SKILLS_CMD } from "../core/skills.js";
+import { SKILLS_CMD } from "../core/skills.js";
 import { type Stack, stacks } from "../stacks/registry.js";
 
 interface SetupOpts {
 	yes?: boolean;
 	dryRun?: boolean;
 	skipSkills?: boolean;
-}
-
-async function runSkillsInstall(autoYes = false): Promise<boolean> {
-	log.step("Installing skills...");
-	try {
-		await installSkills(autoYes);
-		log.success("Skills installed from Authstack.");
-		return true;
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		log.error(`Skills installation failed: ${message}`);
-		log.info(`You can install later: ${pc.cyan(SKILLS_CMD)}`);
-		return false;
-	}
 }
 
 async function interactiveSetup(opts: SetupOpts, cmd: Command) {
@@ -48,34 +34,19 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		log.info(`Detected: ${detected.map((s) => s.name).join(", ")}`);
 	}
 
-	const SKILLS_ID = "skills";
-
 	let toInstall: Stack[];
-	let installSkillsSelected = !opts.skipSkills;
+	const installSkillsSelected = !opts.skipSkills;
 
 	if (nonInteractive) {
 		toInstall = detected.length > 0 ? detected : stacks;
 	} else {
-		const skillsOption = opts.skipSkills
-			? []
-			: [
-					{
-						value: SKILLS_ID,
-						label: "Scalekit skills",
-						hint: "for Cline, Windsurf, Aider & more (via Authstack)",
-					},
-				];
-
 		const selected = await multiselect({
 			message: "What do you want to set up?",
-			options: [
-				...stacks.map((s) => ({
-					value: s.id,
-					label: s.name,
-					hint: s.detect() ? "detected" : undefined,
-				})),
-				...skillsOption,
-			],
+			options: stacks.map((s) => ({
+				value: s.id,
+				label: s.name,
+				hint: s.detect() ? "detected" : undefined,
+			})),
 			required: true,
 		});
 
@@ -84,9 +55,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			process.exit(0);
 		}
 
-		const selectedIds = selected as string[];
-		installSkillsSelected = selectedIds.includes(SKILLS_ID);
-		toInstall = stacks.filter((s) => selectedIds.includes(s.id));
+		toInstall = stacks.filter((s) => (selected as string[]).includes(s.id));
 	}
 
 	const results: ApplyResult[] = [];
@@ -111,35 +80,20 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		}
 	}
 
-	// Install skills if selected
 	let skillsInstalled = false;
 
 	if (installSkillsSelected) {
-		if (opts.dryRun) {
-			if (!json) log.info(`Would run: ${SKILLS_CMD}`);
-			emitSetupBeacon("skills", {
-				mode: "interactive",
-				dryRun: true,
-				status: "initiated",
-			});
-			emitSetupBeacon("skills", {
-				mode: "interactive",
-				dryRun: true,
-				status: "succeeded",
-			});
-		} else if (nonInteractive) {
-			emitSetupBeacon("skills", {
-				mode: "interactive",
+		if (nonInteractive || opts.dryRun) {
+			const skills = await applySkills({
 				dryRun: !!opts.dryRun,
-				status: "initiated",
+				json,
+				yes: true,
+				emit: "steps",
 			});
-			skillsInstalled = await runSkillsInstall(true);
-			const skillsFinal = skillsInstalled ? "succeeded" : "failed";
-			emitSetupBeacon("skills", {
-				mode: "interactive",
-				dryRun: !!opts.dryRun,
-				status: skillsFinal,
-			});
+			skillsInstalled = skills.status === "installed";
+			if (skills.status === "failed" && !json) {
+				log.info(`You can install later: ${pc.cyan(SKILLS_CMD)}`);
+			}
 		} else {
 			const action = await select({
 				message: "How do you want to install Scalekit skills (from Authstack)?",
@@ -158,18 +112,19 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 			});
 
 			if (!isCancel(action) && action === "auto") {
-				emitSetupBeacon("skills", {
-					mode: "interactive",
-					dryRun: !!opts.dryRun,
-					status: "initiated",
+				const skills = await applySkills({
+					dryRun: false,
+					json,
+					yes: true,
+					emit: "steps",
 				});
-				skillsInstalled = await runSkillsInstall(true);
-				const skillsFinal = skillsInstalled ? "succeeded" : "failed";
-				emitSetupBeacon("skills", {
-					mode: "interactive",
-					dryRun: !!opts.dryRun,
-					status: skillsFinal,
-				});
+				skillsInstalled = skills.status === "installed";
+				if (skills.status === "installed" && !json) {
+					log.success("Skills installed from Authstack.");
+				}
+				if (skills.status === "failed" && !json) {
+					log.info(`You can install later: ${pc.cyan(SKILLS_CMD)}`);
+				}
 			} else {
 				log.info("");
 				log.info("Run this to install Scalekit skills from Authstack:");

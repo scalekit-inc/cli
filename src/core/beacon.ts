@@ -106,3 +106,14 @@ export function emitSetupBeacon(
 		source: data.source ?? "setup",
 	});
 }
+
+export function emitSkillsBeacon(data: {
+	dryRun: boolean;
+	status: "initiated" | "succeeded" | "failed";
+}): void {
+	void emitBeacon("skills_installed", {
+		dry_run: data.dryRun,
+		status: data.status,
+		source: "skills",
+	});
+}
