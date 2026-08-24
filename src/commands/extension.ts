@@ -44,27 +44,26 @@ async function installExtension(
 		}
 	}
 
+	const steps = await stack.install({ preview: true });
+
+	if (!json) {
+		for (const step of steps) {
+			log.info(step);
+		}
+	}
+
 	if (opts.dryRun) {
 		if (json) {
 			jsonOut({
 				extension: stack.id,
 				name: stack.name,
 				status: "dry_run",
-				commands: stack.commands,
+				steps,
 			});
 			return;
 		}
-		for (const cmd of stack.commands) {
-			log.info(`Would run: ${cmd}`);
-		}
 		log.info("Dry run — no commands were executed.");
 		return;
-	}
-
-	if (!json) {
-		for (const cmd of stack.commands) {
-			log.info(`$ ${cmd}`);
-		}
 	}
 
 	try {
@@ -74,6 +73,7 @@ async function installExtension(
 				extension: stack.id,
 				name: stack.name,
 				status: "installed",
+				steps,
 				nextSteps: stack.nextSteps ?? [],
 			});
 		} else {
@@ -125,27 +125,26 @@ async function updateExtension(
 		}
 	}
 
+	const steps = await stack.install({ preview: true });
+
+	if (!json) {
+		for (const step of steps) {
+			log.info(step);
+		}
+	}
+
 	if (opts.dryRun) {
 		if (json) {
 			jsonOut({
 				extension: stack.id,
 				name: stack.name,
 				status: "dry_run",
-				commands: stack.commands,
+				steps,
 			});
 			return;
 		}
-		for (const c of stack.commands) {
-			log.info(`Would run: ${c}`);
-		}
 		log.info("Dry run — no commands were executed.");
 		return;
-	}
-
-	if (!json) {
-		for (const c of stack.commands) {
-			log.info(`$ ${c}`);
-		}
 	}
 
 	try {
@@ -156,6 +155,7 @@ async function updateExtension(
 				extension: stack.id,
 				name: stack.name,
 				status: "updated",
+				steps,
 				nextSteps: stack.nextSteps ?? [],
 			});
 		} else {
@@ -251,20 +251,22 @@ async function uninstallExtension(
 		process.exit(1);
 	}
 
+	const steps = await stack.uninstall({ preview: true });
+
 	if (opts.dryRun) {
-		if (json) {
-			jsonOut({
-				extension: stack.id,
-				name: stack.name,
-				status: "dry_run",
-				commands: stack.uninstallCommands ?? [],
-			});
+		if (!json) {
+			for (const step of steps) {
+				log.info(step);
+			}
+			log.info("Dry run — no commands were executed.");
 			return;
 		}
-		for (const cmd of stack.uninstallCommands ?? []) {
-			log.info(`Would run: ${cmd}`);
-		}
-		log.info("Dry run — no commands were executed.");
+		jsonOut({
+			extension: stack.id,
+			name: stack.name,
+			status: "dry_run",
+			steps,
+		});
 		return;
 	}
 
@@ -279,8 +281,8 @@ async function uninstallExtension(
 	}
 
 	if (!json) {
-		for (const cmd of stack.uninstallCommands ?? []) {
-			log.info(`$ ${cmd}`);
+		for (const step of steps) {
+			log.info(step);
 		}
 	}
 
@@ -292,6 +294,7 @@ async function uninstallExtension(
 				extension: stack.id,
 				name: stack.name,
 				status: "uninstalled",
+				steps,
 			});
 		} else {
 			log.success(`${stack.name} — uninstalled`);

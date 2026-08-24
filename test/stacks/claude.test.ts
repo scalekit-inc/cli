@@ -18,7 +18,9 @@ import {
 	AUTHSTACK_MARKETPLACE,
 	AUTHSTACK_REPO,
 } from "../../src/core/authstack.js";
-import { claudeStack } from "../../src/stacks/claude.js";
+import { requireStack } from "../../src/stacks/registry.js";
+
+const claudeStack = requireStack("claude");
 
 const mockReaddir = vi.mocked(readdir);
 const mockReadFile = vi.mocked(readFile);
@@ -55,7 +57,11 @@ describe("claudeStack.detect", () => {
 describe("claudeStack.install", () => {
 	it("resolves when all commands succeed", async () => {
 		fakeSpawn(0);
-		await expect(claudeStack.install()).resolves.toBeUndefined();
+		await expect(claudeStack.install()).resolves.toEqual(
+			expect.arrayContaining([
+				"claude plugin marketplace add scalekit-inc/authstack",
+			]),
+		);
 		expect(mockSpawn).toHaveBeenCalledTimes(3);
 	});
 

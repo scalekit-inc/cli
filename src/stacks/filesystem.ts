@@ -1,0 +1,178 @@
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { AUTHSTACK_KITS, AUTHSTACK_MARKETPLACE } from "../core/authstack.js";
+import { downloadAuthstack } from "../core/downloader.js";
+import { detectConfigOrPath, detectOnPath } from "./detect.js";
+import type { ApplyOpts, Stack } from "./registry.js";
+import { stubCheckVersion } from "./version-stub.js";
+
+export type FilesystemPlacement =
+	| { kind: "kits"; destDir: () => string }
+	| {
+			kind: "tree";
+			destDir: () => string;
+			extraFile?: {
+				path: () => string;
+				oursName: string;
+			};
+	  };
+
+export type FilesystemDetect =
+	| { kind: "path"; binary: string }
+	| { kind: "config-or-path"; binary: string; configDir: () => string };
+
+export type FilesystemRow = {
+	id: string;
+	name: string;
+	description: string;
+	aliases?: string[];
+	placement: FilesystemPlacement;
+	detect: FilesystemDetect;
+	nextSteps?: string[];
+	tryItNow?: string;
+	checkVersion?: Stack["checkVersion"];
+};
+
+function buildMarketplaceJson(marketplaceDir: string): string {
+	return JSON.stringify(
+		{
+			name: AUTHSTACK_MARKETPLACE,
+			interface: { displayName: "Scalekit Authstack" },
+			plugins: AUTHSTACK_KITS.map((kit) => ({
+				name: kit,
+				source: {
+					source: "local",
+					path: join(marketplaceDir, "kits", kit),
+				},
+				policy: { installation: "AVAILABLE", authentication: "ON_INSTALL" },
+				category: kit === "agentkit" ? "Agent Auth" : "Application Auth",
+			})),
+		},
+		null,
+		2,
+	);
+}
+
+async function readName(path: string): Promise<string | null> {
+	try {
+		const raw = await readFile(path, "utf-8");
+		const data = JSON.parse(raw) as { name?: string };
+		return data.name ?? null;
+	} catch {
+		return null;
+	}
+}
+
+function installSteps(placement: FilesystemPlacement): string[] {
+	const dest = placement.destDir();
+	if (placement.kind === "kits") {
+		return [
+			"download authstack",
+			...AUTHSTACK_KITS.map((name) => `copy ${name} → ${join(dest, name)}`),
+		];
+	}
+	const steps = ["download authstack", `copy authstack → ${dest}`];
+	if (placement.extraFile) {
+		steps.push(`write ${placement.extraFile.path()} if dest is empty or ours`);
+	}
+	return steps;
+}
+
+function uninstallSteps(placement: FilesystemPlacement): string[] {
+	const dest = placement.destDir();
+	if (placement.kind === "kits") {
+		return AUTHSTACK_KITS.map((name) => `remove ${join(dest, name)}`);
+	}
+	const steps = [`remove ${dest}`];
+	if (placement.extraFile) {
+		steps.push(`remove ${placement.extraFile.path()} if ours`);
+	}
+	return steps;
+}
+
+function makeDetect(spec: FilesystemDetect): () => boolean {
+	if (spec.kind === "path") return () => detectOnPath(spec.binary);
+	return () => detectConfigOrPath(spec.configDir(), spec.binary);
+}
+
+export function filesystemStack(row: FilesystemRow): Stack {
+	const detect = makeDetect(row.detect);
+	const { placement } = row;
+
+	return {
+		id: row.id,
+		name: row.name,
+		description: row.description,
+		aliases: row.aliases,
+		nextSteps: row.nextSteps,
+		tryItNow: row.tryItNow,
+		detect,
+		async install(opts?: ApplyOpts) {
+			const steps = installSteps(placement);
+			if (opts?.preview) return steps;
+
+			const dest = placement.destDir();
+			const tmp = await mkdtemp(join(tmpdir(), "scalekit-fs-"));
+			try {
+				const authstackRoot = await downloadAuthstack(tmp);
+
+				if (placement.kind === "kits") {
+					await mkdir(dest, { recursive: true });
+					for (const name of AUTHSTACK_KITS) {
+						await rm(join(dest, name), { recursive: true, force: true });
+						await cp(join(authstackRoot, "kits", name), join(dest, name), {
+							recursive: true,
+						});
+					}
+				} else {
+					await mkdir(dirname(dest), { recursive: true });
+					await rm(dest, { recursive: true, force: true });
+					await cp(authstackRoot, dest, { recursive: true });
+
+					const extra = placement.extraFile;
+					if (extra) {
+						const extraPath = extra.path();
+						const existing = await readName(extraPath);
+						if (existing === null || existing === extra.oursName) {
+							await mkdir(dirname(extraPath), { recursive: true });
+							await writeFile(extraPath, buildMarketplaceJson(dest), "utf-8");
+						}
+					}
+				}
+			} finally {
+				await rm(tmp, { recursive: true, force: true });
+			}
+			return steps;
+		},
+		async uninstall(opts?: ApplyOpts) {
+			const steps = uninstallSteps(placement);
+			if (opts?.preview) return steps;
+
+			const dest = placement.destDir();
+			if (placement.kind === "kits") {
+				for (const name of AUTHSTACK_KITS) {
+					await rm(join(dest, name), { recursive: true, force: true });
+				}
+			} else {
+				await rm(dest, { recursive: true, force: true });
+				const extra = placement.extraFile;
+				if (extra) {
+					const extraPath = extra.path();
+					const existing = await readName(extraPath);
+					if (existing === extra.oursName) {
+						await rm(extraPath, { force: true });
+					}
+				}
+			}
+			return steps;
+		},
+		checkVersion: row.checkVersion ?? stubCheckVersion(detect),
+	};
+}
+
+export function cursorConfigDir(): string {
+	return process.platform === "win32"
+		? join(process.env.APPDATA || "", "Cursor")
+		: join(homedir(), ".cursor");
+}

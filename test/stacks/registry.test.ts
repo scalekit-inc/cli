@@ -11,17 +11,17 @@ describe("stacks registry", () => {
 		expect(ids).toEqual(["cursor", "claude", "codex", "copilot"]);
 	});
 
-	it("every stack has the required shape", () => {
+	it("every stack has the required shape", async () => {
 		for (const stack of stacks) {
 			expect(stack).toMatchObject({
 				id: expect.any(String),
 				name: expect.any(String),
 				description: expect.any(String),
-				commands: expect.any(Array),
 			});
 			expect(typeof stack.detect).toBe("function");
 			expect(typeof stack.install).toBe("function");
-			expect(stack.commands.length).toBeGreaterThan(0);
+			const steps = await stack.install({ preview: true });
+			expect(steps.length).toBeGreaterThan(0);
 		}
 	});
 });

@@ -26,7 +26,7 @@ interface StackResult {
 	id: string;
 	name: string;
 	status: "installed" | "failed" | "dry_run";
-	commands?: string[];
+	steps: string[];
 	error?: string;
 }
 
@@ -35,35 +35,37 @@ async function runStack(
 	dryRun: boolean,
 	json: boolean,
 ): Promise<StackResult> {
-	if (dryRun) {
-		if (!json) {
-			for (const cmd of stack.commands) {
-				log.info(`Would run: ${cmd}`);
-			}
+	const steps = await stack.install({ preview: true });
+	if (!json) {
+		for (const step of steps) {
+			log.info(step);
 		}
+	}
+
+	if (dryRun) {
 		return {
 			id: stack.id,
 			name: stack.name,
 			status: "dry_run",
-			commands: stack.commands,
+			steps,
 		};
-	}
-
-	if (!json) {
-		for (const cmd of stack.commands) {
-			log.info(`$ ${cmd}`);
-		}
 	}
 
 	try {
 		await stack.install();
-		return { id: stack.id, name: stack.name, status: "installed" };
+		return { id: stack.id, name: stack.name, status: "installed", steps };
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		if (!json) {
 			log.error(`${stack.name} failed: ${message}`);
 		}
-		return { id: stack.id, name: stack.name, status: "failed", error: message };
+		return {
+			id: stack.id,
+			name: stack.name,
+			status: "failed",
+			steps,
+			error: message,
+		};
 	}
 }
 

@@ -49,7 +49,7 @@ function stubStacks(opts: { detect?: boolean; installError?: Error } = {}) {
 		vi.spyOn(stack, "install").mockImplementation(
 			opts.installError
 				? () => Promise.reject(opts.installError)
-				: () => Promise.resolve(),
+				: async () => [`${stack.id}-step`],
 		);
 	}
 }
@@ -61,6 +61,7 @@ async function run(args: string[]) {
 }
 
 beforeEach(() => {
+	vi.restoreAllMocks();
 	vi.clearAllMocks();
 	mockIsCancel.mockReturnValue(false);
 	mockEmitSetupBeacon.mockClear();
@@ -70,15 +71,14 @@ beforeEach(() => {
 });
 
 describe("setup --dry-run --yes", () => {
-	it("logs commands without executing install", async () => {
+	it("logs steps via preview without applying", async () => {
 		stubStacks({ detect: true });
 		await run(["--dry-run", "--yes"]);
 
 		for (const stack of stacks) {
-			for (const cmd of stack.commands) {
-				expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-			}
-			expect(stack.install).not.toHaveBeenCalled();
+			expect(stack.install).toHaveBeenCalledWith({ preview: true });
+			expect(stack.install).toHaveBeenCalledTimes(1);
+			expect(mockLog.info).toHaveBeenCalledWith(`${stack.id}-step`);
 		}
 	});
 });
@@ -91,7 +91,7 @@ describe("setup --yes", () => {
 		vi.spyOn(codex, "detect").mockReturnValue(false);
 		vi.spyOn(copilot, "detect").mockReturnValue(false);
 		for (const s of stacks) {
-			vi.spyOn(s, "install").mockResolvedValue();
+			vi.spyOn(s, "install").mockResolvedValue([`${s.id}-step`]);
 		}
 
 		await run(["--yes"]);
@@ -131,13 +131,10 @@ describe("setup --yes", () => {
 });
 
 describe("setup <stack> --dry-run", () => {
-	it("shows only the targeted stack commands", async () => {
+	it("shows only the targeted stack steps", async () => {
 		await run(["cursor", "--dry-run"]);
 
-		const cursor = stacks[0];
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 
 		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
 			"cursor",
@@ -191,7 +188,7 @@ describe("interactive flow", () => {
 describe("setup <stack> with confirmation", () => {
 	it("runs install when user confirms", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue(["cursor-step"]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["cursor"]);
@@ -206,31 +203,24 @@ describe("setup <stack> with confirmation", () => {
 });
 
 describe("setup extension shortcut", () => {
-	it("setup extension cursor --dry-run shows commands", async () => {
+	it("setup extension cursor --dry-run shows steps", async () => {
 		await run(["extension", "cursor", "--dry-run"]);
 
-		const cursor = stacks[0];
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 
 	it("setup ext cc --dry-run resolves alias via shortcut", async () => {
 		await run(["ext", "cc", "--dry-run"]);
 
-		const claude = stacks[1];
-		for (const cmd of claude.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin marketplace add"),
+		);
 	});
 
 	it("inherits parent --dry-run flag", async () => {
 		await run(["--dry-run", "extension", "cursor"]);
 
-		const cursor = stacks[0];
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 });
 
@@ -238,10 +228,9 @@ describe("setup with aliases", () => {
 	it("setup cc --dry-run resolves alias directly", async () => {
 		await run(["cc", "--dry-run"]);
 
-		const claude = stacks[1];
-		for (const cmd of claude.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin marketplace add"),
+		);
 
 		// Beacon uses resolved stack id (not the alias)
 		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
@@ -253,17 +242,14 @@ describe("setup with aliases", () => {
 	it("setup opencode --dry-run resolves codex alias", async () => {
 		await run(["opencode", "--dry-run"]);
 
-		const codex = stacks[2];
-		for (const cmd of codex.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 });
 
 describe("next steps after setup", () => {
 	it("shows next steps for claude after direct setup", async () => {
 		const claude = stacks[1];
-		vi.spyOn(claude, "install").mockResolvedValue();
+		vi.spyOn(claude, "install").mockResolvedValue(["claude-step"]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["claude"]);
@@ -278,7 +264,7 @@ describe("next steps after setup", () => {
 
 	it("does not show next steps for cursor (none defined)", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue(["cursor-step"]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["cursor"]);
