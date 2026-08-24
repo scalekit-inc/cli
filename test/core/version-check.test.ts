@@ -17,9 +17,8 @@ function fakeStack(overrides: Partial<Stack> = {}): Stack {
 		id: "test",
 		name: "Test",
 		description: "test stack",
-		commands: [],
 		detect: () => true,
-		install: async () => {},
+		install: async () => [],
 		...overrides,
 	};
 }

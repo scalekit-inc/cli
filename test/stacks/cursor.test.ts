@@ -29,7 +29,9 @@ import { accessSync } from "node:fs";
 import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { AUTHSTACK_ARCHIVE_DIR } from "../../src/core/authstack.js";
 import { downloadAuthstack } from "../../src/core/downloader.js";
-import { cursorStack } from "../../src/stacks/cursor.js";
+import { requireStack } from "../../src/stacks/registry.js";
+
+const cursorStack = requireStack("cursor");
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockAccessSync = vi.mocked(accessSync);
@@ -91,6 +93,14 @@ describe("cursorStack.install", () => {
 			"/home/user/.cursor/plugins/local/saaskit",
 			{ recursive: true },
 		);
+	});
+
+	it("preview returns steps without downloading", async () => {
+		const steps = await cursorStack.install({ preview: true });
+
+		expect(steps[0]).toBe("download authstack");
+		expect(mockDownload).not.toHaveBeenCalled();
+		expect(mockCp).not.toHaveBeenCalled();
 	});
 
 	it("throws when download fails", async () => {

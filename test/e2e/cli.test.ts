@@ -39,7 +39,7 @@ describe("CLI E2E", () => {
 			"--yes",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("npx skills add");
 	});
 
 	it("update --dry-run prints npm command", async () => {
@@ -88,7 +88,7 @@ describe("extension E2E", () => {
 			"--dry-run",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("download authstack");
 	});
 
 	it("ext i cc --dry-run resolves alias to claude", async () => {
@@ -99,7 +99,7 @@ describe("extension E2E", () => {
 			"--dry-run",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("claude plugin marketplace add");
 		expect(cleanStdout).toContain("claude");
 	});
 
@@ -122,7 +122,7 @@ describe("extension E2E", () => {
 			"--dry-run",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("plugin uninstall");
 		expect(cleanStdout).toContain("uninstall");
 	});
 
@@ -164,8 +164,9 @@ describe("--json flag", () => {
 		const data = JSON.parse(cleanStdout);
 		expect(data.extension).toBe("cursor");
 		expect(data.status).toBe("dry_run");
-		expect(data.commands).toBeDefined();
-		expect(Array.isArray(data.commands)).toBe(true);
+		expect(data.steps).toBeDefined();
+		expect(Array.isArray(data.steps)).toBe(true);
+		expect(data.steps).toContain("download authstack");
 	});
 
 	it("ext i unknown --json outputs JSON error to stderr", async () => {
@@ -192,8 +193,11 @@ describe("--json flag", () => {
 		const data = JSON.parse(cleanStdout);
 		expect(data.extension).toBe("claude");
 		expect(data.status).toBe("dry_run");
-		expect(data.commands).toBeDefined();
-		expect(Array.isArray(data.commands)).toBe(true);
+		expect(data.steps).toBeDefined();
+		expect(Array.isArray(data.steps)).toBe(true);
+		expect(data.steps.some((s: string) => s.includes("plugin uninstall"))).toBe(
+			true,
+		);
 	});
 
 	it("ext rm unknown --json outputs JSON error to stderr", async () => {
@@ -238,9 +242,10 @@ describe("--json flag", () => {
 		]);
 		expect(exitCode).toBe(0);
 		const data = JSON.parse(cleanStdout);
-		expect(data.id).toBe("cursor");
+		expect(data.extension).toBe("cursor");
 		expect(data.status).toBe("dry_run");
-		expect(data.commands).toBeDefined();
+		expect(data.steps).toBeDefined();
+		expect(Array.isArray(data.steps)).toBe(true);
 	});
 
 	it("setup unknown --json outputs JSON error", async () => {
@@ -251,7 +256,7 @@ describe("--json flag", () => {
 		]);
 		expect(exitCode).not.toBe(0);
 		const data = JSON.parse(cleanStderr);
-		expect(data.error).toContain("Unknown stack");
+		expect(data.error).toContain("Unknown extension");
 	});
 });
 
@@ -273,7 +278,7 @@ describe("--json flag position-independent", () => {
 		]);
 		expect(exitCode).toBe(0);
 		const data = JSON.parse(cleanStdout);
-		expect(data.id).toBe("cursor");
+		expect(data.extension).toBe("cursor");
 		expect(data.status).toBe("dry_run");
 	});
 
@@ -300,7 +305,7 @@ describe("--non-interactive flag", () => {
 			"--dry-run",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("npx skills add");
 		expect(cleanStdout).toContain("Dry run");
 	});
 
@@ -311,7 +316,7 @@ describe("--non-interactive flag", () => {
 			"--dry-run",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("npx skills add");
 	});
 
 	it("ext i cursor --non-interactive --dry-run skips confirm", async () => {
@@ -323,6 +328,6 @@ describe("--non-interactive flag", () => {
 			"--dry-run",
 		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain("Would run");
+		expect(cleanStdout).toContain("download authstack");
 	});
 });

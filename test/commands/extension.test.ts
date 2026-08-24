@@ -43,7 +43,7 @@ function stubStacks(opts: { detect?: boolean; installError?: Error } = {}) {
 		vi.spyOn(stack, "install").mockImplementation(
 			opts.installError
 				? () => Promise.reject(opts.installError)
-				: () => Promise.resolve(),
+				: async () => [`${stack.id}-step`],
 		);
 	}
 }
@@ -53,6 +53,7 @@ async function run(args: string[]) {
 }
 
 beforeEach(() => {
+	vi.restoreAllMocks();
 	vi.clearAllMocks();
 	mockIsCancel.mockReturnValue(false);
 	vi.spyOn(process, "exit").mockImplementation((code?: number) => {
@@ -61,65 +62,59 @@ beforeEach(() => {
 });
 
 describe("extension install --dry-run", () => {
-	it("shows commands without executing for cursor", async () => {
+	it("shows steps via preview without applying for cursor", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install");
+		const install = vi.spyOn(cursor, "install");
 
 		await run(["install", "cursor", "--dry-run"]);
 
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
-		expect(cursor.install).not.toHaveBeenCalled();
+		expect(install).toHaveBeenCalledWith({ preview: true });
+		expect(install).toHaveBeenCalledTimes(1);
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 
 	it("resolves alias cc to claude", async () => {
 		await run(["install", "cc", "--dry-run"]);
 
-		const claude = stacks[1];
-		for (const cmd of claude.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin marketplace add"),
+		);
 	});
 
 	it("resolves alias opencode to codex", async () => {
 		await run(["install", "opencode", "--dry-run"]);
 
-		const codex = stacks[2];
-		for (const cmd of codex.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 
-	it("shows commands for copilot", async () => {
+	it("shows steps for copilot", async () => {
 		await run(["install", "copilot", "--dry-run"]);
 
-		const copilot = stacks[3];
-		for (const cmd of copilot.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin marketplace add"),
+		);
 	});
 
 	it("resolves alias ghcp to copilot", async () => {
 		await run(["install", "ghcp", "--dry-run"]);
 
-		const copilot = stacks[3];
-		for (const cmd of copilot.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin marketplace add"),
+		);
 	});
 });
 
 describe("extension install with confirmation", () => {
 	it("installs when user confirms", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["install", "cursor"]);
 
 		expect(mockConfirm).toHaveBeenCalled();
 		expect(cursor.install).toHaveBeenCalled();
+		expect(mockCacheInvalidate).toHaveBeenCalledWith("cursor");
 		expect(mockLog.success).toHaveBeenCalledWith("Cursor — done");
 	});
 
@@ -141,7 +136,7 @@ describe("extension install with confirmation", () => {
 describe("extension install --yes", () => {
 	it("skips confirmation prompt", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue([]);
 
 		await run(["install", "cursor", "--yes"]);
 
@@ -170,8 +165,11 @@ describe("extension install error handling", () => {
 	});
 
 	it("exits 1 when install fails", async () => {
-		vi.spyOn(stacks[0], "install").mockRejectedValue(
-			new Error("install broke"),
+		vi.spyOn(stacks[0], "install").mockImplementation(
+			async (opts?: { preview?: boolean }) => {
+				if (opts?.preview) return ["step"];
+				throw new Error("install broke");
+			},
 		);
 		mockConfirm.mockResolvedValue(true as never);
 
@@ -185,7 +183,7 @@ describe("extension install error handling", () => {
 describe("extension install next steps", () => {
 	it("shows next steps for claude after install", async () => {
 		const claude = stacks[1];
-		vi.spyOn(claude, "install").mockResolvedValue();
+		vi.spyOn(claude, "install").mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["install", "claude"]);
@@ -200,7 +198,7 @@ describe("extension install next steps", () => {
 
 	it("shows next steps for copilot after install", async () => {
 		const copilot = stacks[3];
-		vi.spyOn(copilot, "install").mockResolvedValue();
+		vi.spyOn(copilot, "install").mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["install", "copilot"]);
@@ -212,7 +210,7 @@ describe("extension install next steps", () => {
 
 	it("does not show next steps for cursor (none defined)", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["install", "cursor"]);
@@ -324,43 +322,40 @@ describe("extension status", () => {
 });
 
 describe("extension uninstall --dry-run", () => {
-	it("shows uninstall commands without executing for claude", async () => {
+	it("shows uninstall steps via preview without applying for claude", async () => {
 		const claude = stacks[1];
-		vi.spyOn(claude, "uninstall" as keyof typeof claude);
+		const uninstall = vi.spyOn(claude, "uninstall");
 
 		await run(["uninstall", "claude", "--dry-run"]);
 
-		for (const cmd of claude.uninstallCommands ?? []) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
-		expect(claude.uninstall).not.toHaveBeenCalled();
+		expect(uninstall).toHaveBeenCalledWith({ preview: true });
+		expect(uninstall).toHaveBeenCalledTimes(1);
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin uninstall"),
+		);
 	});
 
-	it("shows uninstall commands for cursor", async () => {
+	it("shows uninstall steps for cursor", async () => {
 		await run(["uninstall", "cursor", "--dry-run"]);
 
-		const cursor = stacks[0];
-		for (const cmd of cursor.uninstallCommands ?? []) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("remove"),
+		);
 	});
 
 	it("resolves alias cc to claude", async () => {
 		await run(["uninstall", "cc", "--dry-run"]);
 
-		const claude = stacks[1];
-		for (const cmd of claude.uninstallCommands ?? []) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin uninstall"),
+		);
 	});
 });
 
 describe("extension uninstall with confirmation", () => {
 	it("uninstalls when user confirms", async () => {
 		const claude = stacks[1];
-		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue(
-			undefined,
-		);
+		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["uninstall", "claude"]);
@@ -372,9 +367,7 @@ describe("extension uninstall with confirmation", () => {
 
 	it("invalidates cache after uninstall", async () => {
 		const claude = stacks[1];
-		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue(
-			undefined,
-		);
+		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["uninstall", "claude"]);
@@ -404,9 +397,7 @@ describe("extension uninstall with confirmation", () => {
 describe("extension uninstall --yes", () => {
 	it("skips confirmation prompt", async () => {
 		const claude = stacks[1];
-		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue(
-			undefined,
-		);
+		vi.spyOn(claude, "uninstall" as keyof typeof claude).mockResolvedValue([]);
 
 		await run(["uninstall", "claude", "--yes"]);
 
@@ -429,7 +420,10 @@ describe("extension uninstall error handling", () => {
 		vi.spyOn(
 			stacks[1],
 			"uninstall" as keyof (typeof stacks)[1],
-		).mockRejectedValue(new Error("uninstall broke"));
+		).mockImplementation(async (opts?: { preview?: boolean }) => {
+			if (opts?.preview) return ["rm"];
+			throw new Error("uninstall broke");
+		});
 		mockConfirm.mockResolvedValue(true as never);
 
 		await expect(run(["uninstall", "claude"])).rejects.toThrow(
@@ -442,41 +436,36 @@ describe("extension uninstall error handling", () => {
 });
 
 describe("extension update --dry-run", () => {
-	it("shows commands without executing for cursor", async () => {
+	it("shows steps via preview without applying for cursor", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install");
+		const install = vi.spyOn(cursor, "install");
 
 		await run(["update", "cursor", "--dry-run"]);
 
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
-		expect(cursor.install).not.toHaveBeenCalled();
+		expect(install).toHaveBeenCalledWith({ preview: true });
+		expect(install).toHaveBeenCalledTimes(1);
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 
 	it("resolves alias cc to claude", async () => {
 		await run(["update", "cc", "--dry-run"]);
 
-		const claude = stacks[1];
-		for (const cmd of claude.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin marketplace add"),
+		);
 	});
 
 	it("resolves alias up", async () => {
 		await run(["up", "cursor", "--dry-run"]);
 
-		const cursor = stacks[0];
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 });
 
 describe("extension update with confirmation", () => {
 	it("updates when user confirms", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["update", "cursor"]);
@@ -488,7 +477,7 @@ describe("extension update with confirmation", () => {
 
 	it("invalidates cache after update", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["update", "cursor"]);
@@ -507,7 +496,7 @@ describe("extension update with confirmation", () => {
 describe("extension update --yes", () => {
 	it("skips confirmation prompt", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue([]);
 
 		await run(["update", "cursor", "--yes"]);
 
@@ -525,7 +514,12 @@ describe("extension update error handling", () => {
 	});
 
 	it("exits 1 when update fails", async () => {
-		vi.spyOn(stacks[0], "install").mockRejectedValue(new Error("update broke"));
+		vi.spyOn(stacks[0], "install").mockImplementation(
+			async (opts?: { preview?: boolean }) => {
+				if (opts?.preview) return ["step"];
+				throw new Error("update broke");
+			},
+		);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await expect(run(["update", "cursor"])).rejects.toThrow("process.exit(1)");

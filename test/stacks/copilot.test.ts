@@ -8,7 +8,9 @@ vi.mock("node:child_process", () => ({
 }));
 
 import { execFileSync, spawn } from "node:child_process";
-import { copilotStack } from "../../src/stacks/copilot.js";
+import { requireStack } from "../../src/stacks/registry.js";
+
+const copilotStack = requireStack("copilot");
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockSpawn = vi.mocked(spawn);
@@ -42,7 +44,11 @@ describe("copilotStack.detect", () => {
 describe("copilotStack.install", () => {
 	it("resolves when all commands succeed", async () => {
 		fakeSpawn(0);
-		await expect(copilotStack.install()).resolves.toBeUndefined();
+		await expect(copilotStack.install()).resolves.toEqual(
+			expect.arrayContaining([
+				"copilot plugin marketplace add scalekit-inc/authstack",
+			]),
+		);
 		expect(mockSpawn).toHaveBeenCalledTimes(3);
 	});
 
@@ -62,7 +68,9 @@ describe("copilotStack.install", () => {
 describe("copilotStack.uninstall", () => {
 	it("resolves when all uninstall commands succeed", async () => {
 		fakeSpawn(0);
-		await expect(copilotStack.uninstall?.()).resolves.toBeUndefined();
+		await expect(copilotStack.uninstall?.()).resolves.toEqual(
+			expect.arrayContaining(["copilot plugin uninstall agentkit@authstack"]),
+		);
 		expect(mockSpawn).toHaveBeenCalledTimes(3);
 	});
 

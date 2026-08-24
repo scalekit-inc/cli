@@ -1,7 +1,4 @@
-import { claudeStack } from "./claude.js";
-import { codexStack } from "./codex.js";
-import { copilotStack } from "./copilot.js";
-import { cursorStack } from "./cursor.js";
+import { stackTable } from "./table.js";
 
 export interface VersionStatus {
 	installed: boolean;
@@ -10,29 +7,32 @@ export interface VersionStatus {
 	status: "up_to_date" | "outdated" | "not_installed" | "unknown";
 }
 
+export interface ApplyOpts {
+	preview?: boolean;
+}
+
 export interface Stack {
 	id: string;
 	name: string;
 	description: string;
 	aliases?: string[];
-	commands: string[];
-	uninstallCommands?: string[];
 	detect: () => boolean;
-	install: () => Promise<void>;
-	uninstall?: () => Promise<void>;
+	install: (opts?: ApplyOpts) => Promise<string[]>;
+	uninstall?: (opts?: ApplyOpts) => Promise<string[]>;
 	checkVersion?: () => Promise<VersionStatus>;
 	nextSteps?: string[];
 	tryItNow?: string;
 }
 
-export const stacks: Stack[] = [
-	cursorStack,
-	claudeStack,
-	codexStack,
-	copilotStack,
-];
+export const stacks: Stack[] = stackTable;
 
 export function findStack(id: string): Stack | undefined {
 	const needle = id.toLowerCase();
 	return stacks.find((s) => s.id === needle || s.aliases?.includes(needle));
+}
+
+export function requireStack(id: string): Stack {
+	const stack = findStack(id);
+	if (!stack) throw new Error(`Unknown stack "${id}"`);
+	return stack;
 }

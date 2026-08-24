@@ -14,12 +14,23 @@ vi.mock("@clack/prompts", () => ({
 }));
 
 vi.mock("../../src/core/skills.js", () => ({
-	installSkills: vi.fn(() => Promise.resolve()),
 	SKILLS_CMD: `npx skills add ${AUTHSTACK_REPO} --skill '*' --agent '*' -g`,
+}));
+
+vi.mock("../../src/core/apply-skills.js", () => ({
+	applySkills: vi.fn(async () => ({
+		status: "installed",
+		steps: [`npx skills add ${AUTHSTACK_REPO} --skill '*' --agent '*' -g`],
+	})),
 }));
 
 vi.mock("../../src/core/beacon.js", () => ({
 	emitSetupBeacon: vi.fn(),
+	emitSkillsBeacon: vi.fn(),
+}));
+
+vi.mock("../../src/core/cache.js", () => ({
+	cacheInvalidate: vi.fn(),
 }));
 
 import {
@@ -31,8 +42,8 @@ import {
 	select,
 } from "@clack/prompts";
 import { setupCommand } from "../../src/commands/setup.js";
+import { applySkills } from "../../src/core/apply-skills.js";
 import { emitSetupBeacon } from "../../src/core/beacon.js";
-import { installSkills } from "../../src/core/skills.js";
 import { stacks } from "../../src/stacks/registry.js";
 
 const mockLog = vi.mocked(log);
@@ -40,7 +51,7 @@ const mockMultiselect = vi.mocked(multiselect);
 const mockSelect = vi.mocked(select);
 const mockConfirm = vi.mocked(confirm);
 const mockIsCancel = vi.mocked(isCancel);
-const mockInstallSkills = vi.mocked(installSkills);
+const mockApplySkills = vi.mocked(applySkills);
 const mockEmitSetupBeacon = vi.mocked(emitSetupBeacon);
 
 function stubStacks(opts: { detect?: boolean; installError?: Error } = {}) {
@@ -49,7 +60,7 @@ function stubStacks(opts: { detect?: boolean; installError?: Error } = {}) {
 		vi.spyOn(stack, "install").mockImplementation(
 			opts.installError
 				? () => Promise.reject(opts.installError)
-				: () => Promise.resolve(),
+				: async () => [`${stack.id}-step`],
 		);
 	}
 }
@@ -61,6 +72,7 @@ async function run(args: string[]) {
 }
 
 beforeEach(() => {
+	vi.restoreAllMocks();
 	vi.clearAllMocks();
 	mockIsCancel.mockReturnValue(false);
 	mockEmitSetupBeacon.mockClear();
@@ -70,15 +82,14 @@ beforeEach(() => {
 });
 
 describe("setup --dry-run --yes", () => {
-	it("logs commands without executing install", async () => {
+	it("logs steps via preview without applying", async () => {
 		stubStacks({ detect: true });
 		await run(["--dry-run", "--yes"]);
 
 		for (const stack of stacks) {
-			for (const cmd of stack.commands) {
-				expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-			}
-			expect(stack.install).not.toHaveBeenCalled();
+			expect(stack.install).toHaveBeenCalledWith({ preview: true });
+			expect(stack.install).toHaveBeenCalledTimes(1);
+			expect(mockLog.info).toHaveBeenCalledWith(`${stack.id}-step`);
 		}
 	});
 });
@@ -91,7 +102,7 @@ describe("setup --yes", () => {
 		vi.spyOn(codex, "detect").mockReturnValue(false);
 		vi.spyOn(copilot, "detect").mockReturnValue(false);
 		for (const s of stacks) {
-			vi.spyOn(s, "install").mockResolvedValue();
+			vi.spyOn(s, "install").mockResolvedValue([`${s.id}-step`]);
 		}
 
 		await run(["--yes"]);
@@ -131,13 +142,10 @@ describe("setup --yes", () => {
 });
 
 describe("setup <stack> --dry-run", () => {
-	it("shows only the targeted stack commands", async () => {
+	it("shows only the targeted stack steps", async () => {
 		await run(["cursor", "--dry-run"]);
 
-		const cursor = stacks[0];
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 
 		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
 			"cursor",
@@ -162,7 +170,7 @@ describe("setup <unknown>", () => {
 	it("logs error and exits for unknown stack", async () => {
 		await expect(run(["foobar"])).rejects.toThrow("process.exit(1)");
 		expect(mockLog.error).toHaveBeenCalledWith(
-			expect.stringContaining('Unknown stack "foobar"'),
+			expect.stringContaining('Unknown extension "foobar"'),
 		);
 	});
 });
@@ -191,7 +199,7 @@ describe("interactive flow", () => {
 describe("setup <stack> with confirmation", () => {
 	it("runs install when user confirms", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue(["cursor-step"]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["cursor"]);
@@ -201,36 +209,29 @@ describe("setup <stack> with confirmation", () => {
 	it("exits when user declines", async () => {
 		mockConfirm.mockResolvedValue(false as never);
 		await expect(run(["cursor"])).rejects.toThrow("process.exit(0)");
-		expect(cancel).toHaveBeenCalledWith("Setup cancelled.");
+		expect(cancel).toHaveBeenCalledWith("Cancelled.");
 	});
 });
 
 describe("setup extension shortcut", () => {
-	it("setup extension cursor --dry-run shows commands", async () => {
+	it("setup extension cursor --dry-run shows steps", async () => {
 		await run(["extension", "cursor", "--dry-run"]);
 
-		const cursor = stacks[0];
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 
 	it("setup ext cc --dry-run resolves alias via shortcut", async () => {
 		await run(["ext", "cc", "--dry-run"]);
 
-		const claude = stacks[1];
-		for (const cmd of claude.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin marketplace add"),
+		);
 	});
 
 	it("inherits parent --dry-run flag", async () => {
 		await run(["--dry-run", "extension", "cursor"]);
 
-		const cursor = stacks[0];
-		for (const cmd of cursor.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 });
 
@@ -238,10 +239,9 @@ describe("setup with aliases", () => {
 	it("setup cc --dry-run resolves alias directly", async () => {
 		await run(["cc", "--dry-run"]);
 
-		const claude = stacks[1];
-		for (const cmd of claude.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("plugin marketplace add"),
+		);
 
 		// Beacon uses resolved stack id (not the alias)
 		expect(mockEmitSetupBeacon).toHaveBeenCalledWith(
@@ -253,17 +253,14 @@ describe("setup with aliases", () => {
 	it("setup opencode --dry-run resolves codex alias", async () => {
 		await run(["opencode", "--dry-run"]);
 
-		const codex = stacks[2];
-		for (const cmd of codex.commands) {
-			expect(mockLog.info).toHaveBeenCalledWith(`Would run: ${cmd}`);
-		}
+		expect(mockLog.info).toHaveBeenCalledWith("download authstack");
 	});
 });
 
 describe("next steps after setup", () => {
 	it("shows next steps for claude after direct setup", async () => {
 		const claude = stacks[1];
-		vi.spyOn(claude, "install").mockResolvedValue();
+		vi.spyOn(claude, "install").mockResolvedValue(["claude-step"]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["claude"]);
@@ -278,7 +275,7 @@ describe("next steps after setup", () => {
 
 	it("does not show next steps for cursor (none defined)", async () => {
 		const cursor = stacks[0];
-		vi.spyOn(cursor, "install").mockResolvedValue();
+		vi.spyOn(cursor, "install").mockResolvedValue(["cursor-step"]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["cursor"]);
@@ -305,38 +302,41 @@ describe("next steps after setup", () => {
 });
 
 describe("skills installation", () => {
-	it("--yes installs skills automatically", async () => {
+	it("--yes installs skills via the skills door", async () => {
 		stubStacks({ detect: true });
 		await run(["--yes"]);
 
-		expect(mockInstallSkills).toHaveBeenCalledWith(true);
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ yes: true, dryRun: false }),
+		);
 	});
 
 	it("--yes --skip-skills skips skills", async () => {
 		stubStacks({ detect: true });
 		await run(["--yes", "--skip-skills"]);
 
-		expect(mockInstallSkills).not.toHaveBeenCalled();
+		expect(mockApplySkills).not.toHaveBeenCalled();
 	});
 
-	it("--dry-run previews the skills command without running it", async () => {
+	it("--dry-run calls the skills door in preview", async () => {
 		stubStacks({ detect: true });
 		await run(["--dry-run", "--yes"]);
 
-		expect(mockInstallSkills).not.toHaveBeenCalled();
-		expect(mockLog.info).toHaveBeenCalledWith(
-			`Would run: npx skills add ${AUTHSTACK_REPO} --skill '*' --agent '*' -g`,
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ dryRun: true, yes: true }),
 		);
 	});
 
-	it("interactive: 'Install now' runs installSkills", async () => {
+	it("interactive: 'Install now' runs the skills door", async () => {
 		stubStacks();
-		mockMultiselect.mockResolvedValue(["cursor", "skills"] as never);
+		mockMultiselect.mockResolvedValue(["cursor"] as never);
 		mockSelect.mockResolvedValue("auto" as never);
 
 		await run([]);
 
-		expect(mockInstallSkills).toHaveBeenCalledWith(true);
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ yes: true }),
+		);
 		expect(mockLog.success).toHaveBeenCalledWith(
 			"Skills installed from Authstack.",
 		);
@@ -344,72 +344,59 @@ describe("skills installation", () => {
 
 	it("interactive: 'I'll do it myself' shows the command", async () => {
 		stubStacks();
-		mockMultiselect.mockResolvedValue(["cursor", "skills"] as never);
+		mockMultiselect.mockResolvedValue(["cursor"] as never);
 		mockSelect.mockResolvedValue("manual" as never);
 
 		await run([]);
 
-		expect(mockInstallSkills).not.toHaveBeenCalled();
+		expect(mockApplySkills).not.toHaveBeenCalled();
 		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
 		expect(
 			calls.some((c) => c.includes(`npx skills add ${AUTHSTACK_REPO}`)),
 		).toBe(true);
 	});
 
-	it("interactive: not selecting skills skips installation", async () => {
+	it("multiselect does not include a skills stack id", async () => {
 		stubStacks();
 		mockMultiselect.mockResolvedValue(["cursor"] as never);
-
-		await run([]);
-
-		expect(mockInstallSkills).not.toHaveBeenCalled();
-	});
-
-	it("multiselect includes the skills option", async () => {
-		stubStacks();
-		mockMultiselect.mockResolvedValue(["cursor"] as never);
+		mockSelect.mockResolvedValue("manual" as never);
 
 		await run([]);
 
 		const call = mockMultiselect.mock.calls[0][0] as {
 			options: { value: string; label: string }[];
 		};
-		const skillsOpt = call.options.find((o) => o.value === "skills");
-		expect(skillsOpt).toBeDefined();
-		expect(skillsOpt?.label).toBe("Scalekit skills");
+		expect(call.options.find((o) => o.value === "skills")).toBeUndefined();
 	});
 
-	it("--skip-skills hides skills from multiselect", async () => {
+	it("--skip-skills skips the skills prompt", async () => {
 		stubStacks();
 		mockMultiselect.mockResolvedValue(["cursor"] as never);
 
 		await run(["--skip-skills"]);
 
-		const call = mockMultiselect.mock.calls[0][0] as {
-			options: { value: string; label: string }[];
-		};
-		const skillsOpt = call.options.find((o) => o.value === "skills");
-		expect(skillsOpt).toBeUndefined();
+		expect(mockSelect).not.toHaveBeenCalled();
+		expect(mockApplySkills).not.toHaveBeenCalled();
 	});
 
 	it("handles skills installation failure gracefully", async () => {
 		stubStacks({ detect: true });
-		mockInstallSkills.mockRejectedValueOnce(new Error("network error"));
+		mockApplySkills.mockResolvedValueOnce({
+			status: "failed",
+			steps: [],
+			error: "network error",
+		});
 
 		await run(["--yes"]);
 
-		expect(mockLog.error).toHaveBeenCalledWith(
-			"Skills installation failed: network error",
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining(`npx skills add ${AUTHSTACK_REPO}`),
 		);
-		const infoCalls = mockLog.info.mock.calls.map((c) => c[0] as string);
-		expect(
-			infoCalls.some((c) => c.includes(`npx skills add ${AUTHSTACK_REPO}`)),
-		).toBe(true);
 	});
 
 	it("outro counts skills in total when installed", async () => {
 		stubStacks();
-		mockMultiselect.mockResolvedValue(["cursor", "skills"] as never);
+		mockMultiselect.mockResolvedValue(["cursor"] as never);
 		mockSelect.mockResolvedValue("auto" as never);
 
 		await run([]);
@@ -417,19 +404,6 @@ describe("skills installation", () => {
 		const { outro } = await import("@clack/prompts");
 		expect(outro).toHaveBeenCalledWith(
 			"Setup complete! 2 components installed.",
-		);
-	});
-
-	it("outro says '1 component' when only skills installed", async () => {
-		stubStacks();
-		mockMultiselect.mockResolvedValue(["skills"] as never);
-		mockSelect.mockResolvedValue("auto" as never);
-
-		await run([]);
-
-		const { outro } = await import("@clack/prompts");
-		expect(outro).toHaveBeenCalledWith(
-			"Setup complete! 1 component installed.",
 		);
 	});
 });
