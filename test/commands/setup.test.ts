@@ -22,6 +22,10 @@ vi.mock("../../src/core/beacon.js", () => ({
 	emitSetupBeacon: vi.fn(),
 }));
 
+vi.mock("../../src/core/cache.js", () => ({
+	cacheInvalidate: vi.fn(),
+}));
+
 import {
 	cancel,
 	confirm,
@@ -159,7 +163,7 @@ describe("setup <unknown>", () => {
 	it("logs error and exits for unknown stack", async () => {
 		await expect(run(["foobar"])).rejects.toThrow("process.exit(1)");
 		expect(mockLog.error).toHaveBeenCalledWith(
-			expect.stringContaining('Unknown stack "foobar"'),
+			expect.stringContaining('Unknown extension "foobar"'),
 		);
 	});
 });
@@ -198,7 +202,7 @@ describe("setup <stack> with confirmation", () => {
 	it("exits when user declines", async () => {
 		mockConfirm.mockResolvedValue(false as never);
 		await expect(run(["cursor"])).rejects.toThrow("process.exit(0)");
-		expect(cancel).toHaveBeenCalledWith("Setup cancelled.");
+		expect(cancel).toHaveBeenCalledWith("Cancelled.");
 	});
 });
 

@@ -242,7 +242,7 @@ describe("--json flag", () => {
 		]);
 		expect(exitCode).toBe(0);
 		const data = JSON.parse(cleanStdout);
-		expect(data.id).toBe("cursor");
+		expect(data.extension).toBe("cursor");
 		expect(data.status).toBe("dry_run");
 		expect(data.steps).toBeDefined();
 		expect(Array.isArray(data.steps)).toBe(true);
@@ -256,7 +256,7 @@ describe("--json flag", () => {
 		]);
 		expect(exitCode).not.toBe(0);
 		const data = JSON.parse(cleanStderr);
-		expect(data.error).toContain("Unknown stack");
+		expect(data.error).toContain("Unknown extension");
 	});
 });
 
@@ -278,7 +278,7 @@ describe("--json flag position-independent", () => {
 		]);
 		expect(exitCode).toBe(0);
 		const data = JSON.parse(cleanStdout);
-		expect(data.id).toBe("cursor");
+		expect(data.extension).toBe("cursor");
 		expect(data.status).toBe("dry_run");
 	});
 

@@ -1,6 +1,5 @@
 import {
 	cancel,
-	confirm,
 	intro,
 	isCancel,
 	log,
@@ -10,63 +9,17 @@ import {
 } from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
+import { type ApplyResult, applyStack } from "../core/apply-stack.js";
 import { emitSetupBeacon } from "../core/beacon.js";
 import { styledCommand } from "../core/help.js";
-import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
+import { isJson, isNonInteractive, jsonOut } from "../core/output.js";
 import { installSkills, SKILLS_CMD } from "../core/skills.js";
-import { findStack, type Stack, stacks } from "../stacks/registry.js";
+import { type Stack, stacks } from "../stacks/registry.js";
 
 interface SetupOpts {
 	yes?: boolean;
 	dryRun?: boolean;
 	skipSkills?: boolean;
-}
-
-interface StackResult {
-	id: string;
-	name: string;
-	status: "installed" | "failed" | "dry_run";
-	steps: string[];
-	error?: string;
-}
-
-async function runStack(
-	stack: Stack,
-	dryRun: boolean,
-	json: boolean,
-): Promise<StackResult> {
-	const steps = await stack.install({ preview: true });
-	if (!json) {
-		for (const step of steps) {
-			log.info(step);
-		}
-	}
-
-	if (dryRun) {
-		return {
-			id: stack.id,
-			name: stack.name,
-			status: "dry_run",
-			steps,
-		};
-	}
-
-	try {
-		await stack.install();
-		return { id: stack.id, name: stack.name, status: "installed", steps };
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		if (!json) {
-			log.error(`${stack.name} failed: ${message}`);
-		}
-		return {
-			id: stack.id,
-			name: stack.name,
-			status: "failed",
-			steps,
-			error: message,
-		};
-	}
 }
 
 async function runSkillsInstall(autoYes = false): Promise<boolean> {
@@ -136,27 +89,22 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		toInstall = stacks.filter((s) => selectedIds.includes(s.id));
 	}
 
-	const results: StackResult[] = [];
+	const results: ApplyResult[] = [];
 
 	for (const stack of toInstall) {
 		if (!json) log.step(`Setting up ${stack.name}...`);
 
-		emitSetupBeacon(stack.id, {
-			mode: "interactive",
+		const result = await applyStack({
+			name: stack.id,
+			verb: "install",
 			dryRun: !!opts.dryRun,
-			status: "initiated",
+			json,
+			skipConfirm: true,
+			source: "setup",
+			mode: "interactive",
+			emit: "steps",
 		});
-
-		const result = await runStack(stack, !!opts.dryRun, json);
 		results.push(result);
-
-		const interactiveFinal =
-			result.status === "failed" ? "failed" : "succeeded";
-		emitSetupBeacon(stack.id, {
-			mode: "interactive",
-			dryRun: !!opts.dryRun,
-			status: interactiveFinal,
-		});
 
 		if (!json && result.status !== "failed") {
 			log.success(`${stack.name} — done`);
@@ -239,10 +187,14 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 
 	if (json) {
 		jsonOut({
-			extensions: results.map((r) => {
-				const stack = toInstall.find((s) => s.id === r.id);
-				return { ...r, nextSteps: stack?.nextSteps ?? [] };
-			}),
+			extensions: results.map((r) => ({
+				id: r.extension,
+				name: r.name,
+				status: r.status,
+				steps: r.steps,
+				nextSteps: r.nextSteps,
+				error: r.error,
+			})),
 			summary: { succeeded, failed },
 		});
 		return;
@@ -250,7 +202,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 
 	if (!opts.dryRun && failed === 0) {
 		const installed = toInstall.filter(
-			(s) => results.find((r) => r.id === s.id)?.status === "installed",
+			(s) => results.find((r) => r.extension === s.id)?.status === "installed",
 		);
 
 		const allNextSteps = installed.filter((s) => s.nextSteps?.length);
@@ -287,74 +239,28 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 
 async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 	const json = isJson(cmd);
-	const stack = findStack(stackId);
-
-	if (!stack) {
-		const ids = stacks.map((s) => s.id).join(", ");
-		if (json) {
-			jsonErr(`Unknown stack "${stackId}". Available: ${ids}`);
-		}
-		log.error(`Unknown stack "${stackId}". Available: ${ids}`);
-		process.exit(1);
-	}
-
-	if (!isNonInteractive(cmd) && !opts.dryRun) {
-		intro("Scalekit Setup");
-		const ok = await confirm({
-			message: `Install ${stack.name} auth stack?`,
-		});
-		if (isCancel(ok) || !ok) {
-			cancel("Setup cancelled.");
-			process.exit(0);
-		}
-	}
-
-	if (!json) log.step(`Setting up ${stack.name}...`);
-
-	emitSetupBeacon(stack.id, {
-		mode: "direct",
+	const result = await applyStack({
+		name: stackId,
+		verb: "install",
 		dryRun: !!opts.dryRun,
-		status: "initiated",
+		json,
+		skipConfirm: isNonInteractive(cmd) || !!opts.dryRun,
+		source: "setup",
+		mode: "direct",
+		emit: "full",
 	});
 
-	const result = await runStack(stack, !!opts.dryRun, json);
+	if (json) return;
 
-	const directFinal = result.status === "failed" ? "failed" : "succeeded";
-	emitSetupBeacon(stack.id, {
-		mode: "direct",
-		dryRun: !!opts.dryRun,
-		status: directFinal,
-	});
+	if (opts.dryRun) return;
 
-	if (json) {
-		if (result.status === "failed") {
-			jsonErr(`${stack.name} failed: ${result.error}`);
-		}
-		jsonOut({
-			...result,
-			nextSteps: stack.nextSteps ?? [],
-			tryItNow: stack.tryItNow,
-		});
-		return;
+	if (result.status === "installed" && result.tryItNow) {
+		log.info("");
+		log.info(pc.bold("Try it now:"));
+		log.info(`  ${pc.dim("$")} ${pc.cyan(result.tryItNow)}`);
 	}
 
-	if (opts.dryRun) {
-		outro("Dry run — no commands were executed.");
-	} else if (result.status === "installed") {
-		log.success(`${stack.name} — done`);
-		if (stack.nextSteps?.length) {
-			log.info(pc.bold("\nNext steps:"));
-			for (const step of stack.nextSteps) {
-				log.info(`  ${pc.dim("→")} ${step}`);
-			}
-		}
-		if (stack.tryItNow) {
-			log.info("");
-			log.info(pc.bold("Try it now:"));
-			log.info(`  ${pc.dim("$")} ${pc.cyan(stack.tryItNow)}`);
-		}
-		outro(`${stack.name} auth stack installed.`);
-	} else {
+	if (result.status === "failed") {
 		process.exit(1);
 	}
 }

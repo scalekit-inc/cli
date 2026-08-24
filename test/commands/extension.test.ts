@@ -114,6 +114,7 @@ describe("extension install with confirmation", () => {
 
 		expect(mockConfirm).toHaveBeenCalled();
 		expect(cursor.install).toHaveBeenCalled();
+		expect(mockCacheInvalidate).toHaveBeenCalledWith("cursor");
 		expect(mockLog.success).toHaveBeenCalledWith("Cursor — done");
 	});
 
