@@ -1,6 +1,5 @@
-/** Short Cursor URL text. Cursor rejects long markdown as invalid prompt text. */
-export const CURSOR_FIRST_PROMPT =
-	"Build with Scalekit. Load https://docs.scalekit.com/llms.txt before writing any Scalekit code. The installed authstack skill is the source of truth. Credentials live in the environment, never in source. Ask AgentKit, SaaSKit, MCP auth, SSO, or SCIM. If I am not sure, propose AgentKit with Gmail. Then set SCALEKIT_ENVIRONMENT_URL, SCALEKIT_CLIENT_ID, and SCALEKIT_CLIENT_SECRET in a local .env that is not in git. Then load the matching installed skill and run its steps. Then return that product's proof plus the matching path on https://app.scalekit.com.";
+/** Cursor URL text. Their handler rejects long or richly encoded prompts. */
+export const CURSOR_FIRST_PROMPT = "Build with Scalekit";
 
 /** Post-setup first prompt. Does not tell the agent to run setup or npx skills add. */
 export const FIRST_PROMPT = `Build with Scalekit.

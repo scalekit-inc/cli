@@ -6,20 +6,14 @@ import {
 } from "../../src/core/first-prompt.js";
 import type { Destination } from "../../src/core/launch.js";
 
-const cursorHref = (() => {
-	const url = new URL("cursor://anysphere.cursor-deeplink/prompt");
-	url.searchParams.set("text", CURSOR_FIRST_PROMPT);
-	return url.toString();
-})();
+const cursorHref = `cursor://anysphere.cursor-deeplink/prompt?text=${encodeURIComponent(CURSOR_FIRST_PROMPT)}`;
 
 describe("first prompt", () => {
 	it("is the post-setup playbook and does not reinstall", () => {
 		expect(FIRST_PROMPT).toContain("Build with Scalekit");
 		expect(FIRST_PROMPT).not.toContain("npx skills add");
 		expect(FIRST_PROMPT).not.toContain("@scalekit-inc/cli setup");
-		expect(CURSOR_FIRST_PROMPT).toContain("Build with Scalekit");
-		expect(CURSOR_FIRST_PROMPT.length).toBeLessThan(800);
-		expect(CURSOR_FIRST_PROMPT).not.toContain("&");
+		expect(CURSOR_FIRST_PROMPT).toBe("Build with Scalekit");
 	});
 });
 

@@ -24,9 +24,11 @@ export type OpenResult = {
 };
 
 function cursorDestination(): Destination {
-	const url = new URL("cursor://anysphere.cursor-deeplink/prompt");
-	url.searchParams.set("text", CURSOR_FIRST_PROMPT);
-	return { kind: "url", href: url.toString() };
+	const text = encodeURIComponent(CURSOR_FIRST_PROMPT);
+	return {
+		kind: "url",
+		href: `cursor://anysphere.cursor-deeplink/prompt?text=${text}`,
+	};
 }
 
 function claudeUrlDestination(): Destination {
