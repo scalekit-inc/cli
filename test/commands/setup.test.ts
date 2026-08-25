@@ -33,6 +33,16 @@ vi.mock("../../src/core/cache.js", () => ({
 	cacheInvalidate: vi.fn(),
 }));
 
+vi.mock("../../src/core/apply-open.js", async () => {
+	const actual = await vi.importActual<
+		typeof import("../../src/core/apply-open.js")
+	>("../../src/core/apply-open.js");
+	return {
+		...actual,
+		applyOpen: vi.fn(async () => ({ status: "opened" as const })),
+	};
+});
+
 import {
 	cancel,
 	confirm,
@@ -42,6 +52,7 @@ import {
 	select,
 } from "@clack/prompts";
 import { setupCommand } from "../../src/commands/setup.js";
+import { applyOpen } from "../../src/core/apply-open.js";
 import { applySkills } from "../../src/core/apply-skills.js";
 import { emitSetupBeacon } from "../../src/core/beacon.js";
 import { stacks } from "../../src/stacks/registry.js";
@@ -52,6 +63,7 @@ const mockSelect = vi.mocked(select);
 const mockConfirm = vi.mocked(confirm);
 const mockIsCancel = vi.mocked(isCancel);
 const mockApplySkills = vi.mocked(applySkills);
+const mockApplyOpen = vi.mocked(applyOpen);
 const mockEmitSetupBeacon = vi.mocked(emitSetupBeacon);
 
 function stubStacks(opts: { detect?: boolean; installError?: Error } = {}) {
@@ -405,5 +417,84 @@ describe("skills installation", () => {
 		expect(outro).toHaveBeenCalledWith(
 			"Setup complete! 2 components installed.",
 		);
+	});
+});
+
+describe("setup offers Open", () => {
+	it("asks to Open after interactive success and Opens the stack", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor"] as never);
+		mockSelect.mockResolvedValue("manual" as never);
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run([]);
+
+		expect(mockConfirm).toHaveBeenCalledWith(
+			expect.objectContaining({ message: expect.stringMatching(/Open/i) }),
+		);
+		expect(mockApplyOpen).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "cursor", dryRun: false, json: false }),
+		);
+	});
+
+	it("asks which stack when more than one Open-capable succeeded", async () => {
+		stubStacks();
+		mockMultiselect.mockResolvedValue(["cursor", "claude"] as never);
+		mockSelect
+			.mockResolvedValueOnce("manual" as never)
+			.mockResolvedValueOnce("claude" as never);
+		mockConfirm.mockResolvedValue(true as never);
+
+		await run([]);
+
+		expect(mockSelect).toHaveBeenCalledWith(
+			expect.objectContaining({
+				message: expect.stringMatching(/Open which/i),
+			}),
+		);
+		expect(mockApplyOpen).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "claude" }),
+		);
+	});
+
+	it("setup -y does not Open", async () => {
+		stubStacks({ detect: true });
+		await run(["--yes"]);
+		expect(mockApplyOpen).not.toHaveBeenCalled();
+	});
+
+	it("setup --dry-run does not Open", async () => {
+		stubStacks({ detect: true });
+		await run(["--dry-run", "--yes"]);
+		expect(mockApplyOpen).not.toHaveBeenCalled();
+	});
+
+	it("direct setup cursor offers Open after confirm", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install").mockResolvedValue(["cursor-step"]);
+		mockConfirm
+			.mockResolvedValueOnce(true as never)
+			.mockResolvedValueOnce(true as never);
+
+		await run(["cursor"]);
+
+		expect(mockApplyOpen).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "cursor" }),
+		);
+	});
+
+	it("direct setup cursor -y does not Open", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install").mockResolvedValue(["cursor-step"]);
+		await run(["cursor", "--yes"]);
+		expect(mockApplyOpen).not.toHaveBeenCalled();
+	});
+
+	it("setup extension does not Open", async () => {
+		const cursor = stacks[0];
+		vi.spyOn(cursor, "install").mockResolvedValue(["cursor-step"]);
+		mockConfirm.mockResolvedValue(true as never);
+		await run(["extension", "cursor"]);
+		expect(mockApplyOpen).not.toHaveBeenCalled();
 	});
 });

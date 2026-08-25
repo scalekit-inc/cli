@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runCLI } from "../helpers.js";
 
@@ -357,6 +358,12 @@ describe("open E2E", () => {
 		);
 	});
 
+	it("open -y with no stack names one", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI(["open", "-y"]);
+		expect(exitCode).not.toBe(0);
+		expect(cleanStdout + cleanStderr).toMatch(/Name a stack/i);
+	});
+
 	it("open --dry-run with no stack names one", async () => {
 		const { exitCode, cleanStderr, cleanStdout } = await runCLI([
 			"open",
@@ -410,6 +417,15 @@ describe("open E2E", () => {
 		]);
 		expect(exitCode).not.toBe(0);
 		expect(cleanStdout + cleanStderr).toContain("Unknown extension");
+	});
+
+	it("README lists open commands and does not teach npx skills add", () => {
+		const readme = readFileSync("README.md", "utf8");
+		expect(readme).toContain("scalekit open");
+		expect(readme).toContain("scalekit open cursor");
+		expect(readme).toContain("scalekit open claude");
+		expect(readme).toContain("scalekit open codex");
+		expect(readme).not.toContain("npx skills add");
 	});
 
 	it("--json open cursor does not print the URL as a launch", async () => {

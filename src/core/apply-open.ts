@@ -12,6 +12,10 @@ export function onlyOpenCapableId(): string | undefined {
 	return [...OPEN_CAPABLE][0];
 }
 
+export function isOpenCapable(id: string): boolean {
+	return OPEN_CAPABLE.has(id);
+}
+
 export type OpenResult = {
 	status: "dry_run" | "opened" | "skipped" | "failed";
 	destination?: Destination;

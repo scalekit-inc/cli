@@ -71,6 +71,13 @@ describe("open codex", () => {
 		);
 	});
 
+	it("open -y with no stack errors when more than one is capable", async () => {
+		await expect(
+			root().parseAsync(["open", "-y"], { from: "user" }),
+		).rejects.toThrow("process.exit(1)");
+		expect(mockApply).not.toHaveBeenCalled();
+	});
+
 	it("open codex -y picks CLI with no ask", async () => {
 		await root().parseAsync(["open", "codex", "-y"], { from: "user" });
 		expect(mockSelect).not.toHaveBeenCalled();

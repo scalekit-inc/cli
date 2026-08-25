@@ -61,6 +61,19 @@ scalekit setup claude -y            # or: sk setup cc -y
 scalekit setup copilot --dry-run    # or: sk setup ghcp --dry-run
 ```
 
+### Open a stack
+
+After setup, Open the stack with a first prompt filled:
+
+```bash
+scalekit open
+scalekit open cursor
+scalekit open claude
+scalekit open codex
+```
+
+`open` is not a second install path. Use `scalekit setup` first.
+
 ### Updating
 
 ```bash
@@ -110,6 +123,11 @@ scalekit                              show help
 scalekit setup                        interactive setup wizard (stacks + skills)
 scalekit setup <tool>                 set up a specific tool
 scalekit setup --skip-skills          stacks only, skip skills
+
+scalekit open                         ask which stack to open
+scalekit open cursor                  open Cursor with the first prompt
+scalekit open claude                  open Claude Code with the first prompt
+scalekit open codex                   open Codex (asks CLI or desktop)
 
 scalekit update                       update the Scalekit CLI itself
 scalekit extension install <id>       install by id or alias    (alias: ext i)
