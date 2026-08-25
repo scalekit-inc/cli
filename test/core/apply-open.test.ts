@@ -3,11 +3,13 @@ import { applyOpen } from "../../src/core/apply-open.js";
 import { FIRST_PROMPT } from "../../src/core/first-prompt.js";
 import type { Destination } from "../../src/core/launch.js";
 
-const CURSOR_HREF = "cursor://anysphere.cursor-deeplink/prompt?text=";
+const CURSOR_HREF = `cursor://anysphere.cursor-deeplink/prompt?text=${encodeURIComponent(FIRST_PROMPT)}`;
 
 describe("first prompt", () => {
-	it("is a named slot with no invented text", () => {
-		expect(FIRST_PROMPT).toBe("");
+	it("is the post-setup playbook and does not reinstall", () => {
+		expect(FIRST_PROMPT).toContain("Build with Scalekit");
+		expect(FIRST_PROMPT).not.toContain("npx skills add");
+		expect(FIRST_PROMPT).not.toContain("@scalekit-inc/cli setup");
 	});
 });
 
@@ -84,7 +86,7 @@ describe("applyOpen", () => {
 			json: false,
 			launch,
 		});
-		const href = `claude-cli://open?cwd=${encodeURIComponent(process.cwd())}&q=`;
+		const href = `claude-cli://open?cwd=${encodeURIComponent(process.cwd())}&q=${encodeURIComponent(FIRST_PROMPT)}`;
 		expect(result.status).toBe("dry_run");
 		expect(result.destination).toEqual({ kind: "url", href });
 		expect(launch).not.toHaveBeenCalled();
@@ -92,7 +94,7 @@ describe("applyOpen", () => {
 
 	it("claude calls the launcher with the official URL", async () => {
 		const launch = vi.fn(async (_dest: Destination) => {});
-		const href = `claude-cli://open?cwd=${encodeURIComponent(process.cwd())}&q=`;
+		const href = `claude-cli://open?cwd=${encodeURIComponent(process.cwd())}&q=${encodeURIComponent(FIRST_PROMPT)}`;
 		const result = await applyOpen({
 			name: "claude",
 			dryRun: false,
@@ -105,7 +107,7 @@ describe("applyOpen", () => {
 	});
 
 	it("cc and claude-code Open the same as claude", async () => {
-		const href = `claude-cli://open?cwd=${encodeURIComponent(process.cwd())}&q=`;
+		const href = `claude-cli://open?cwd=${encodeURIComponent(process.cwd())}&q=${encodeURIComponent(FIRST_PROMPT)}`;
 		for (const name of ["cc", "claude-code"]) {
 			const launch = vi.fn(async (_dest: Destination) => {});
 			const result = await applyOpen({
@@ -120,7 +122,7 @@ describe("applyOpen", () => {
 	});
 
 	it("claude falls back to the CLI argv when the URL launch fails", async () => {
-		const href = `claude-cli://open?cwd=${encodeURIComponent(process.cwd())}&q=`;
+		const href = `claude-cli://open?cwd=${encodeURIComponent(process.cwd())}&q=${encodeURIComponent(FIRST_PROMPT)}`;
 		const launch = vi.fn(async (dest: Destination) => {
 			if (dest.kind === "url") throw new Error("no handler");
 		});
