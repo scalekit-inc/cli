@@ -1,9 +1,14 @@
 import { cancel, isCancel, log, select } from "@clack/prompts";
 import type { Command } from "commander";
-import { applyOpen, onlyOpenCapableId } from "../core/apply-open.js";
+import {
+	applyOpen,
+	type CodexVia,
+	onlyOpenCapableId,
+} from "../core/apply-open.js";
 import { styledCommand } from "../core/help.js";
 import { defaultLaunch, formatDestination } from "../core/launch.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
+import { findStack } from "../stacks/registry.js";
 
 async function resolveName(
 	stackId: string | undefined,
@@ -24,6 +29,7 @@ async function resolveName(
 		options: [
 			{ value: "cursor", label: "Cursor" },
 			{ value: "claude", label: "Claude Code" },
+			{ value: "codex", label: "Codex" },
 		],
 	});
 	if (isCancel(picked)) {
@@ -33,24 +39,54 @@ async function resolveName(
 	return picked as string;
 }
 
+async function resolveVia(name: string, skipAsk: boolean): Promise<CodexVia> {
+	const stack = findStack(name);
+	if (stack?.id !== "codex") return "cli";
+	if (skipAsk) return "cli";
+	const picked = await select({
+		message: "Open Codex how?",
+		options: [
+			{
+				value: "cli",
+				label: "CLI",
+				hint: "the prompt may send",
+			},
+			{
+				value: "desktop",
+				label: "Desktop app",
+				hint: "fill only",
+			},
+		],
+	});
+	if (isCancel(picked)) {
+		cancel("Cancelled.");
+		process.exit(0);
+	}
+	return picked as CodexVia;
+}
+
 export const openCommand = styledCommand("open")
 	.description("open a coding agent with the first prompt filled")
-	.argument("[stack]", "cursor, claude (or any alias)")
+	.argument("[stack]", "cursor, claude, codex (or any alias)")
+	.option("-y, --yes", "skip confirmation prompts")
 	.option("--dry-run", "print the destination without opening")
 	.action(
 		async (
 			stackId: string | undefined,
-			opts: { dryRun?: boolean },
+			opts: { dryRun?: boolean; yes?: boolean },
 			cmd: Command,
 		) => {
 			const json = isJson(cmd);
-			const skipAsk = isNonInteractive(cmd) || !!opts.dryRun || json;
+			const skipAsk =
+				isNonInteractive(cmd) || !!opts.dryRun || json || !!opts.yes;
 			const name = await resolveName(stackId, skipAsk, json);
+			const via = await resolveVia(name, skipAsk);
 			const result = await applyOpen({
 				name,
 				dryRun: !!opts.dryRun,
 				json,
 				launch: defaultLaunch,
+				via,
 			});
 
 			if (result.status === "failed") {

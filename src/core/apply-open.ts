@@ -3,7 +3,9 @@ import { availableExtensionNames } from "./apply-stack.js";
 import { FIRST_PROMPT } from "./first-prompt.js";
 import type { Destination, Launch } from "./launch.js";
 
-const OPEN_CAPABLE = new Set(["cursor", "claude"]);
+const OPEN_CAPABLE = new Set(["cursor", "claude", "codex"]);
+
+export type CodexVia = "cli" | "desktop";
 
 export function onlyOpenCapableId(): string | undefined {
 	if (OPEN_CAPABLE.size !== 1) return undefined;
@@ -33,8 +35,23 @@ function claudeArgvDestination(): Destination {
 	return { kind: "argv", argv: ["claude", FIRST_PROMPT] };
 }
 
-function destinationFor(id: string): Destination {
+function codexCliDestination(): Destination {
+	return { kind: "argv", argv: ["codex", FIRST_PROMPT] };
+}
+
+function codexDesktopDestination(): Destination {
+	const prompt = encodeURIComponent(FIRST_PROMPT);
+	const path = encodeURIComponent(process.cwd());
+	return { kind: "url", href: `codex://new?prompt=${prompt}&path=${path}` };
+}
+
+function destinationFor(id: string, via: CodexVia): Destination {
 	if (id === "claude") return claudeUrlDestination();
+	if (id === "codex") {
+		return via === "desktop"
+			? codexDesktopDestination()
+			: codexCliDestination();
+	}
 	return cursorDestination();
 }
 
@@ -45,6 +62,7 @@ export async function applyOpen(input: {
 	dryRun: boolean;
 	json: boolean;
 	launch: Launch;
+	via?: CodexVia;
 }): Promise<OpenResult> {
 	const stack = findStack(input.name);
 	if (!stack) {
@@ -60,7 +78,7 @@ export async function applyOpen(input: {
 		};
 	}
 
-	const destination = destinationFor(stack.id);
+	const destination = destinationFor(stack.id, input.via ?? "cli");
 	if (input.dryRun) {
 		return { status: "dry_run", destination };
 	}

@@ -377,6 +377,17 @@ describe("open E2E", () => {
 		expect(cleanStdout).toContain("cwd=");
 	});
 
+	it("open codex --dry-run prints the CLI destination", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"open",
+			"codex",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toMatch(/\bcodex\b/);
+		expect(cleanStdout).not.toContain("codex://");
+	});
+
 	it("open cc --dry-run is the same as claude", async () => {
 		const { exitCode, cleanStdout } = await runCLI(["open", "cc", "--dry-run"]);
 		expect(exitCode).toBe(0);
