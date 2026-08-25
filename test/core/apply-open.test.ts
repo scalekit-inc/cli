@@ -3,7 +3,11 @@ import { applyOpen } from "../../src/core/apply-open.js";
 import { FIRST_PROMPT } from "../../src/core/first-prompt.js";
 import type { Destination } from "../../src/core/launch.js";
 
-const CURSOR_HREF = `cursor://anysphere.cursor-deeplink/prompt?text=${encodeURIComponent(FIRST_PROMPT)}`;
+const cursorHref = (() => {
+	const url = new URL("cursor://anysphere.cursor-deeplink/prompt");
+	url.searchParams.set("text", FIRST_PROMPT);
+	return url.toString();
+})();
 
 describe("first prompt", () => {
 	it("is the post-setup playbook and does not reinstall", () => {
@@ -23,7 +27,7 @@ describe("applyOpen", () => {
 			launch,
 		});
 		expect(result.status).toBe("dry_run");
-		expect(result.destination).toEqual({ kind: "url", href: CURSOR_HREF });
+		expect(result.destination).toEqual({ kind: "url", href: cursorHref });
 		expect(launch).not.toHaveBeenCalled();
 	});
 
@@ -36,7 +40,7 @@ describe("applyOpen", () => {
 			launch,
 		});
 		expect(result.status).toBe("opened");
-		expect(launch).toHaveBeenCalledWith({ kind: "url", href: CURSOR_HREF });
+		expect(launch).toHaveBeenCalledWith({ kind: "url", href: cursorHref });
 	});
 
 	it("json does not launch", async () => {
