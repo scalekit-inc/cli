@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import cfonts from "cfonts";
 import type { Command } from "commander";
 import { extensionCommand } from "./commands/extension.js";
+import { openCommand } from "./commands/open.js";
 import { setupCommand } from "./commands/setup.js";
 import { skillsCommand } from "./commands/skills.js";
 import { updateCommand } from "./commands/update.js";
@@ -38,6 +39,7 @@ const program = styledCommand("scalekit")
 
 program.addCommand(extensionCommand);
 program.addCommand(setupCommand);
+program.addCommand(openCommand);
 program.addCommand(skillsCommand);
 program.addCommand(updateCommand);
 

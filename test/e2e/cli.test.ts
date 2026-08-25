@@ -331,3 +331,66 @@ describe("--non-interactive flag", () => {
 		expect(cleanStdout).toContain("download authstack");
 	});
 });
+
+describe("open E2E", () => {
+	it("lists open in top-level help", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["--help"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("open");
+	});
+
+	it("shows open command help", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["open", "--help"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("open");
+	});
+
+	it("open cursor --dry-run prints the official prompt URL", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"open",
+			"cursor",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain(
+			"cursor://anysphere.cursor-deeplink/prompt?text=",
+		);
+	});
+
+	it("open --dry-run prints the official prompt URL", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["open", "--dry-run"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain(
+			"cursor://anysphere.cursor-deeplink/prompt?text=",
+		);
+	});
+
+	it("open copilot errors as not an Open target", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI([
+			"open",
+			"copilot",
+		]);
+		expect(exitCode).not.toBe(0);
+		expect(cleanStdout + cleanStderr).toMatch(/not an Open target/i);
+	});
+
+	it("open unknown exits with unknown extension error", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI([
+			"open",
+			"unknown",
+		]);
+		expect(exitCode).not.toBe(0);
+		expect(cleanStdout + cleanStderr).toContain("Unknown extension");
+	});
+
+	it("--json open cursor does not print the URL as a launch", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"--json",
+			"open",
+			"cursor",
+		]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(data.status).toBe("skipped");
+	});
+});
