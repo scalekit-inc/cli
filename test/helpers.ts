@@ -1,5 +1,12 @@
 import { execa, type Options } from "execa";
 import stripAnsi from "strip-ansi";
+import { findStack, type Stack } from "../src/stacks/registry.js";
+
+export function stack(id: string): Stack {
+	const found = findStack(id);
+	if (!found) throw new Error(`Unknown stack "${id}"`);
+	return found;
+}
 
 export const clean = (str: string) => stripAnsi(str).trim();
 

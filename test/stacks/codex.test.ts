@@ -29,9 +29,9 @@ import {
 	AUTHSTACK_MARKETPLACE,
 } from "../../src/core/authstack.js";
 import { downloadAuthstack } from "../../src/core/downloader.js";
-import { requireStack } from "../../src/stacks/registry.js";
+import { stack } from "../helpers.js";
 
-const codexStack = requireStack("codex");
+const codexStack = stack("codex");
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockCp = vi.mocked(cp);

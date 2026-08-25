@@ -31,7 +31,6 @@ export type FilesystemRow = {
 	placement: FilesystemPlacement;
 	detect: FilesystemDetect;
 	nextSteps?: string[];
-	tryItNow?: string;
 	checkVersion?: Stack["checkVersion"];
 	kitPresent?: {
 		kitDirs: () => string[];
@@ -112,7 +111,6 @@ export function filesystemStack(row: FilesystemRow): Stack {
 		description: row.description,
 		aliases: row.aliases,
 		nextSteps: row.nextSteps,
-		tryItNow: row.tryItNow,
 		detect,
 		async install(opts?: ApplyOpts) {
 			const steps = installSteps(placement);

@@ -1,3 +1,4 @@
+import { isCancel, select } from "@clack/prompts";
 import { findStack } from "../stacks/registry.js";
 import { availableExtensionNames } from "./apply-stack.js";
 import { CURSOR_FIRST_PROMPT, FIRST_PROMPT } from "./first-prompt.js";
@@ -7,13 +8,21 @@ const OPEN_CAPABLE = new Set(["cursor", "claude", "codex"]);
 
 export type CodexVia = "cli" | "desktop";
 
-export function onlyOpenCapableId(): string | undefined {
-	if (OPEN_CAPABLE.size !== 1) return undefined;
-	return [...OPEN_CAPABLE][0];
-}
-
 export function isOpenCapable(id: string): boolean {
 	return OPEN_CAPABLE.has(id);
+}
+
+/** Returns undefined when the user cancels. */
+export async function pickCodexVia(): Promise<CodexVia | undefined> {
+	const picked = await select({
+		message: "Open Codex how?",
+		options: [
+			{ value: "cli", label: "CLI", hint: "the prompt may send" },
+			{ value: "desktop", label: "Desktop app", hint: "fill only" },
+		],
+	});
+	if (isCancel(picked)) return undefined;
+	return picked as CodexVia;
 }
 
 export type OpenResult = {

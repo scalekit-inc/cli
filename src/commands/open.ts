@@ -1,10 +1,6 @@
 import { cancel, isCancel, log, select } from "@clack/prompts";
 import type { Command } from "commander";
-import {
-	applyOpen,
-	type CodexVia,
-	onlyOpenCapableId,
-} from "../core/apply-open.js";
+import { applyOpen, type CodexVia, pickCodexVia } from "../core/apply-open.js";
 import { styledCommand } from "../core/help.js";
 import { defaultLaunch, formatDestination } from "../core/launch.js";
 import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
@@ -17,8 +13,6 @@ async function resolveName(
 ): Promise<string> {
 	if (stackId) return stackId;
 	if (skipAsk) {
-		const only = onlyOpenCapableId();
-		if (only) return only;
 		const message = "Name a stack to Open.";
 		if (json) jsonErr(message);
 		log.error(message);
@@ -40,29 +34,14 @@ async function resolveName(
 }
 
 async function resolveVia(name: string, skipAsk: boolean): Promise<CodexVia> {
-	const stack = findStack(name);
-	if (stack?.id !== "codex") return "cli";
+	if (findStack(name)?.id !== "codex") return "cli";
 	if (skipAsk) return "cli";
-	const picked = await select({
-		message: "Open Codex how?",
-		options: [
-			{
-				value: "cli",
-				label: "CLI",
-				hint: "the prompt may send",
-			},
-			{
-				value: "desktop",
-				label: "Desktop app",
-				hint: "fill only",
-			},
-		],
-	});
-	if (isCancel(picked)) {
+	const picked = await pickCodexVia();
+	if (picked === undefined) {
 		cancel("Cancelled.");
 		process.exit(0);
 	}
-	return picked as CodexVia;
+	return picked;
 }
 
 export const openCommand = styledCommand("open")

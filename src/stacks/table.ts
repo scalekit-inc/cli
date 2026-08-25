@@ -27,8 +27,6 @@ export const stackTable: Stack[] = [
 				),
 			manifestRel: ".cursor-plugin",
 		},
-		tryItNow:
-			'Open Cursor → ⌘L → Ask: "Analyze my project and suggest how Scalekit can power it"',
 	}),
 	pluginCliStack({
 		id: "claude",
@@ -41,8 +39,6 @@ export const stackTable: Stack[] = [
 			`Enable auto-update: /plugins → Marketplace → ${AUTHSTACK_MARKETPLACE} → Enable auto-update`,
 			'Try: "Connect my Gmail account using Scalekit"',
 		],
-		tryItNow:
-			'claude "Analyze my project and suggest how Scalekit can power it"',
 		checkVersion: checkClaudeVersion,
 	}),
 	filesystemStack({
@@ -75,8 +71,6 @@ export const stackTable: Stack[] = [
 			manifestRel: ".codex-plugin",
 		},
 		nextSteps: ["Run `codex mcp login scalekit` to authenticate"],
-		tryItNow:
-			'codex "Analyze my project and suggest how Scalekit can power it"',
 	}),
 	pluginCliStack({
 		id: "copilot",
@@ -102,7 +96,5 @@ export const stackTable: Stack[] = [
 			`To update later: \`copilot plugin update agentkit@${AUTHSTACK_MARKETPLACE}\``,
 			'Try: "Connect my Gmail account using Scalekit"',
 		],
-		tryItNow:
-			'copilot -i "Analyze my project and suggest how Scalekit can power it"',
 	}),
 ];

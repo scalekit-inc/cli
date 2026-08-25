@@ -18,9 +18,9 @@ import {
 	AUTHSTACK_MARKETPLACE,
 	AUTHSTACK_REPO,
 } from "../../src/core/authstack.js";
-import { requireStack } from "../../src/stacks/registry.js";
+import { stack } from "../helpers.js";
 
-const claudeStack = requireStack("claude");
+const claudeStack = stack("claude");
 
 const mockReaddir = vi.mocked(readdir);
 const mockReadFile = vi.mocked(readFile);

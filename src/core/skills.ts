@@ -1,5 +1,3 @@
-import * as A from "fp-ts/lib/Array.js";
-import { pipe } from "fp-ts/lib/function.js";
 import { AUTHSTACK_REPO } from "./authstack.js";
 import { type RunShellOptions, runShellCommands } from "./shell.js";
 
@@ -7,14 +5,13 @@ import { type RunShellOptions, runShellCommands } from "./shell.js";
 // scalekit-inc/authstack repo used for the editor stacks/plugins.
 // If the installed guidance references legacy split repos, that content
 // lives in the authstack repo itself and should be updated there.
-const SKILLS_REPO = AUTHSTACK_REPO;
 
 export function buildSkillsCommand({
 	yes = false,
 }: {
 	yes?: boolean;
 } = {}): string {
-	const base = `npx skills add ${SKILLS_REPO} --skill '*' --agent '*' -g`;
+	const base = `npx skills add ${AUTHSTACK_REPO} --skill '*' --agent '*' -g`;
 	return yes ? `${base} -y` : base;
 }
 
@@ -30,10 +27,7 @@ const dropPatterns = [
 ];
 
 export function isSkillsNoiseLine(line: string): boolean {
-	return pipe(
-		dropPatterns,
-		A.some((pattern) => pattern.test(line)),
-	);
+	return dropPatterns.some((pattern) => pattern.test(line));
 }
 
 const skillsFilter: RunShellOptions["filter"] = (line) =>

@@ -10,7 +10,12 @@ import {
 } from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
-import { applyOpen, type CodexVia, isOpenCapable } from "../core/apply-open.js";
+import {
+	applyOpen,
+	type CodexVia,
+	isOpenCapable,
+	pickCodexVia,
+} from "../core/apply-open.js";
 import { applySkills } from "../core/apply-skills.js";
 import { type ApplyResult, applyStack } from "../core/apply-stack.js";
 import { styledCommand } from "../core/help.js";
@@ -38,15 +43,9 @@ async function offerOpen(installed: Stack[]) {
 
 	let via: CodexVia = "cli";
 	if (findStack(name)?.id === "codex") {
-		const picked = await select({
-			message: "Open Codex how?",
-			options: [
-				{ value: "cli", label: "CLI", hint: "the prompt may send" },
-				{ value: "desktop", label: "Desktop app", hint: "fill only" },
-			],
-		});
-		if (isCancel(picked)) return;
-		via = picked as CodexVia;
+		const picked = await pickCodexVia();
+		if (picked === undefined) return;
+		via = picked;
 	}
 
 	const opened = await applyOpen({
