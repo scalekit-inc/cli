@@ -13,7 +13,9 @@ describe("first prompt", () => {
 		expect(FIRST_PROMPT).toContain("Build with Scalekit");
 		expect(FIRST_PROMPT).not.toContain("npx skills add");
 		expect(FIRST_PROMPT).not.toContain("@scalekit-inc/cli setup");
-		expect(CURSOR_FIRST_PROMPT).toBe("Build with Scalekit");
+		expect(CURSOR_FIRST_PROMPT).toBe(
+			"Build with Scalekit. Load https://docs.scalekit.com/llms.txt. Follow the installed authstack skill. Ask what I want to build.",
+		);
 	});
 });
 

@@ -1,5 +1,6 @@
 /** Cursor URL text. Their handler rejects long or richly encoded prompts. */
-export const CURSOR_FIRST_PROMPT = "Build with Scalekit";
+export const CURSOR_FIRST_PROMPT =
+	"Build with Scalekit. Load https://docs.scalekit.com/llms.txt. Follow the installed authstack skill. Ask what I want to build.";
 
 /** Post-setup first prompt. Does not tell the agent to run setup or npx skills add. */
 export const FIRST_PROMPT = `Build with Scalekit.
@@ -8,7 +9,7 @@ Load https://docs.scalekit.com/llms.txt before writing any Scalekit code. The in
 
 Follow these in order. A step is done only when its check passes.
 
-0. Ask — offer AgentKit, SaaSKit, MCP auth, SSO, or SCIM. If I am not sure, propose AgentKit with Gmail and proceed unless I pick another.
+0. Ask — offer AgentKit, SaaSKit, MCP auth, SSO, or SCIM. Wait for my pick.
    Done: I have named a product.
 
 1. Credentials — set these in a local .env for development, from https://app.scalekit.com → Developers → Settings → API Credentials:
