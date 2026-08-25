@@ -14,8 +14,9 @@ import { access, writeFile } from "node:fs/promises";
 import {
 	AUTHSTACK_ARCHIVE_DIR,
 	AUTHSTACK_REPO,
+	AUTHSTACK_URL,
 } from "../../src/core/authstack.js";
-import { AUTHSTACK_URL, downloadAuthstack } from "../../src/core/downloader.js";
+import { downloadAuthstack } from "../../src/core/downloader.js";
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockWriteFile = vi.mocked(writeFile);

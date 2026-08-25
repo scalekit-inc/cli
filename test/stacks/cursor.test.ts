@@ -29,9 +29,9 @@ import { accessSync } from "node:fs";
 import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { AUTHSTACK_ARCHIVE_DIR } from "../../src/core/authstack.js";
 import { downloadAuthstack } from "../../src/core/downloader.js";
-import { requireStack } from "../../src/stacks/registry.js";
+import { stack } from "../helpers.js";
 
-const cursorStack = requireStack("cursor");
+const cursorStack = stack("cursor");
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockAccessSync = vi.mocked(accessSync);

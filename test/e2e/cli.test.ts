@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { runCLI } from "../helpers.js";
 
@@ -329,5 +330,112 @@ describe("--non-interactive flag", () => {
 		]);
 		expect(exitCode).toBe(0);
 		expect(cleanStdout).toContain("download authstack");
+	});
+});
+
+describe("open E2E", () => {
+	it("lists open in top-level help", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["--help"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("open");
+	});
+
+	it("shows open command help", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["open", "--help"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("open");
+	});
+
+	it("open cursor --dry-run prints the official prompt URL", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"open",
+			"cursor",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain(
+			"cursor://anysphere.cursor-deeplink/prompt?text=",
+		);
+	});
+
+	it("open -y with no stack names one", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI(["open", "-y"]);
+		expect(exitCode).not.toBe(0);
+		expect(cleanStdout + cleanStderr).toMatch(/Name a stack/i);
+	});
+
+	it("open --dry-run with no stack names one", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI([
+			"open",
+			"--dry-run",
+		]);
+		expect(exitCode).not.toBe(0);
+		expect(cleanStdout + cleanStderr).toMatch(/Name a stack/i);
+	});
+
+	it("open claude --dry-run prints the official URL", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"open",
+			"claude",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("claude-cli://open");
+		expect(cleanStdout).toContain("cwd=");
+	});
+
+	it("open codex --dry-run prints the CLI destination", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"open",
+			"codex",
+			"--dry-run",
+		]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toMatch(/\bcodex\b/);
+		expect(cleanStdout).not.toContain("codex://");
+	});
+
+	it("open cc --dry-run is the same as claude", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["open", "cc", "--dry-run"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("claude-cli://open");
+	});
+
+	it("open copilot errors as not an Open target", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI([
+			"open",
+			"copilot",
+		]);
+		expect(exitCode).not.toBe(0);
+		expect(cleanStdout + cleanStderr).toMatch(/not an Open target/i);
+	});
+
+	it("open unknown exits with unknown extension error", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI([
+			"open",
+			"unknown",
+		]);
+		expect(exitCode).not.toBe(0);
+		expect(cleanStdout + cleanStderr).toContain("Unknown extension");
+	});
+
+	it("README lists open commands and does not teach npx skills add", () => {
+		const readme = readFileSync("README.md", "utf8");
+		expect(readme).toContain("scalekit open");
+		expect(readme).toContain("scalekit open cursor");
+		expect(readme).toContain("scalekit open claude");
+		expect(readme).toContain("scalekit open codex");
+		expect(readme).not.toContain("npx skills add");
+	});
+
+	it("--json open cursor does not print the URL as a launch", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"--json",
+			"open",
+			"cursor",
+		]);
+		expect(exitCode).toBe(0);
+		const data = JSON.parse(cleanStdout);
+		expect(data.status).toBe("skipped");
 	});
 });

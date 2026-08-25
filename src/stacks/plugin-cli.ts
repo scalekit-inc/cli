@@ -15,7 +15,6 @@ export type PluginCliRow = {
 	aliases?: string[];
 	tool: "claude" | "copilot";
 	nextSteps?: string[];
-	tryItNow?: string;
 	checkVersion?: Stack["checkVersion"];
 	kitPresent?: {
 		kitDirs: () => string[];
@@ -35,7 +34,6 @@ export function pluginCliStack(row: PluginCliRow): Stack {
 		description: row.description,
 		aliases: row.aliases,
 		nextSteps: row.nextSteps,
-		tryItNow: row.tryItNow,
 		detect,
 		async install(opts?: ApplyOpts) {
 			if (!opts?.preview) await runShellCommands(cmds);

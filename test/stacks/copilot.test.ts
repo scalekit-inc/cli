@@ -8,9 +8,9 @@ vi.mock("node:child_process", () => ({
 }));
 
 import { execFileSync, spawn } from "node:child_process";
-import { requireStack } from "../../src/stacks/registry.js";
+import { stack } from "../helpers.js";
 
-const copilotStack = requireStack("copilot");
+const copilotStack = stack("copilot");
 
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockSpawn = vi.mocked(spawn);

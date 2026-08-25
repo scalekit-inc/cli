@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
-import cfonts from "cfonts";
 import type { Command } from "commander";
 import { extensionCommand } from "./commands/extension.js";
+import { openCommand } from "./commands/open.js";
 import { setupCommand } from "./commands/setup.js";
 import { skillsCommand } from "./commands/skills.js";
 import { updateCommand } from "./commands/update.js";
@@ -10,20 +10,6 @@ import { styledCommand } from "./core/help.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
-
-function showBanner() {
-	if (process.env.NO_COLOR || process.argv.includes("--plain")) {
-		return;
-	}
-
-	cfonts.say("Scalekit", {
-		font: "chrome",
-		align: "left",
-		colors: ["cyan", "white", "blue"],
-		letterSpacing: 1,
-		space: true,
-	});
-}
 
 const program = styledCommand("scalekit")
 	.description(
@@ -38,11 +24,11 @@ const program = styledCommand("scalekit")
 
 program.addCommand(extensionCommand);
 program.addCommand(setupCommand);
+program.addCommand(openCommand);
 program.addCommand(skillsCommand);
 program.addCommand(updateCommand);
 
 program.action(async (_opts: unknown, cmd: Command) => {
-	if (!program.opts().json) showBanner();
 	// best-effort check + optional y/N prompt (only when interactive)
 	await checkAndPromptForCliUpdateOnRoot(cmd);
 	program.help();

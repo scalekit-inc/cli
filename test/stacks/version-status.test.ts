@@ -11,7 +11,7 @@ vi.mock("node:os", async (importOriginal) => {
 });
 
 import { access } from "node:fs/promises";
-import { requireStack } from "../../src/stacks/registry.js";
+import { stack } from "../helpers.js";
 
 const mockAccess = vi.mocked(access);
 
@@ -22,7 +22,7 @@ beforeEach(() => {
 describe("stack checkVersion is kit present, not detect", () => {
 	it("cursor is not_installed when manifests are missing even if we never detect PATH", async () => {
 		mockAccess.mockRejectedValue(new Error("enoent"));
-		const result = await requireStack("cursor").checkVersion?.();
+		const result = await stack("cursor").checkVersion?.();
 		expect(result).toEqual({ installed: false, status: "not_installed" });
 		expect(mockAccess).toHaveBeenCalledWith(
 			"/home/user/.cursor/plugins/local/agentkit/.cursor-plugin",
@@ -31,7 +31,7 @@ describe("stack checkVersion is kit present, not detect", () => {
 
 	it("copilot looks under ~/.copilot/installed-plugins/authstack", async () => {
 		mockAccess.mockResolvedValue(undefined);
-		const result = await requireStack("copilot").checkVersion?.();
+		const result = await stack("copilot").checkVersion?.();
 		expect(result).toEqual({ installed: true, status: "unknown" });
 		expect(mockAccess).toHaveBeenCalledWith(
 			"/home/user/.copilot/installed-plugins/authstack/agentkit/.github/plugin",
@@ -40,7 +40,7 @@ describe("stack checkVersion is kit present, not detect", () => {
 
 	it("codex looks under marketplace kits", async () => {
 		mockAccess.mockResolvedValue(undefined);
-		await requireStack("codex").checkVersion?.();
+		await stack("codex").checkVersion?.();
 		expect(mockAccess).toHaveBeenCalledWith(
 			"/home/user/.codex/marketplaces/authstack/kits/agentkit/.codex-plugin",
 		);

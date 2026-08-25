@@ -21,7 +21,6 @@ export interface Stack {
 	uninstall?: (opts?: ApplyOpts) => Promise<string[]>;
 	checkVersion?: () => Promise<VersionStatus>;
 	nextSteps?: string[];
-	tryItNow?: string;
 }
 
 export const stacks: Stack[] = stackTable;
@@ -29,10 +28,4 @@ export const stacks: Stack[] = stackTable;
 export function findStack(id: string): Stack | undefined {
 	const needle = id.toLowerCase();
 	return stacks.find((s) => s.id === needle || s.aliases?.includes(needle));
-}
-
-export function requireStack(id: string): Stack {
-	const stack = findStack(id);
-	if (!stack) throw new Error(`Unknown stack "${id}"`);
-	return stack;
 }

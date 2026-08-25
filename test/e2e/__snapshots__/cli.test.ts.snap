@@ -9,6 +9,7 @@ USAGE
 COMMANDS
   extension|ext  manage Scalekit extensions for coding tools
   setup          set up Scalekit auth stacks and skills for your coding agents
+  open           open a coding agent with the first prompt filled
   skills         install Scalekit skills from Authstack
   update         update the Scalekit CLI itself
 

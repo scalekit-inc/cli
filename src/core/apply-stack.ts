@@ -14,7 +14,6 @@ export type ApplyResult = {
 	status: "dry_run" | "installed" | "updated" | "uninstalled" | "failed";
 	steps: string[];
 	nextSteps: string[];
-	tryItNow?: string;
 	error?: string;
 };
 
@@ -103,7 +102,6 @@ export async function applyStack(input: {
 			status: "dry_run",
 			steps: stepList,
 			nextSteps: stack.nextSteps ?? [],
-			tryItNow: stack.tryItNow,
 		};
 		if (input.emit === "full" && input.json) {
 			jsonOut({
@@ -166,7 +164,6 @@ export async function applyStack(input: {
 			status,
 			steps: stepList,
 			nextSteps: stack.nextSteps ?? [],
-			tryItNow: stack.tryItNow,
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
@@ -190,7 +187,6 @@ export async function applyStack(input: {
 			status: "failed",
 			steps: stepList,
 			nextSteps: stack.nextSteps ?? [],
-			tryItNow: stack.tryItNow,
 			error: message,
 		};
 	}

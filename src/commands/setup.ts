@@ -1,5 +1,6 @@
 import {
 	cancel,
+	confirm,
 	intro,
 	isCancel,
 	log,
@@ -9,12 +10,55 @@ import {
 } from "@clack/prompts";
 import type { Command } from "commander";
 import pc from "picocolors";
+import {
+	applyOpen,
+	type CodexVia,
+	isOpenCapable,
+	pickCodexVia,
+} from "../core/apply-open.js";
 import { applySkills } from "../core/apply-skills.js";
 import { type ApplyResult, applyStack } from "../core/apply-stack.js";
 import { styledCommand } from "../core/help.js";
+import { defaultLaunch } from "../core/launch.js";
 import { isJson, isNonInteractive, jsonOut } from "../core/output.js";
 import { SKILLS_CMD } from "../core/skills.js";
-import { type Stack, stacks } from "../stacks/registry.js";
+import { findStack, type Stack, stacks } from "../stacks/registry.js";
+
+async function offerOpen(installed: Stack[]) {
+	const capable = installed.filter((s) => isOpenCapable(s.id));
+	if (capable.length === 0) return;
+
+	const ok = await confirm({ message: "Open a stack now?" });
+	if (isCancel(ok) || !ok) return;
+
+	let name = capable[0].id;
+	if (capable.length > 1) {
+		const picked = await select({
+			message: "Open which stack?",
+			options: capable.map((s) => ({ value: s.id, label: s.name })),
+		});
+		if (isCancel(picked)) return;
+		name = picked as string;
+	}
+
+	let via: CodexVia = "cli";
+	if (findStack(name)?.id === "codex") {
+		const picked = await pickCodexVia();
+		if (picked === undefined) return;
+		via = picked;
+	}
+
+	const opened = await applyOpen({
+		name,
+		dryRun: false,
+		json: false,
+		launch: defaultLaunch,
+		via,
+	});
+	if (opened.status === "failed" && opened.error) {
+		log.error(opened.error);
+	}
+}
 
 interface SetupOpts {
 	yes?: boolean;
@@ -155,26 +199,23 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		return;
 	}
 
-	if (!opts.dryRun && failed === 0) {
+	if (!opts.dryRun) {
 		const installed = toInstall.filter(
 			(s) => results.find((r) => r.extension === s.id)?.status === "installed",
 		);
 
-		const allNextSteps = installed.filter((s) => s.nextSteps?.length);
-		for (const stack of allNextSteps) {
-			log.info(pc.bold(`\nNext steps for ${stack.name}:`));
-			for (const step of stack.nextSteps ?? []) {
-				log.info(`  ${pc.dim("→")} ${step}`);
+		if (failed === 0) {
+			const allNextSteps = installed.filter((s) => s.nextSteps?.length);
+			for (const stack of allNextSteps) {
+				log.info(pc.bold(`\nNext steps for ${stack.name}:`));
+				for (const step of stack.nextSteps ?? []) {
+					log.info(`  ${pc.dim("→")} ${step}`);
+				}
 			}
 		}
 
-		const tryIt = installed.filter((s) => s.tryItNow);
-		if (tryIt.length > 0) {
-			log.info("");
-			log.info(pc.bold("Try it now:"));
-			for (const stack of tryIt) {
-				log.info(`  ${pc.dim("$")} ${pc.cyan(stack.tryItNow ?? "")}`);
-			}
+		if (!nonInteractive && installed.some((s) => isOpenCapable(s.id))) {
+			await offerOpen(installed);
 		}
 	}
 
@@ -192,7 +233,12 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	}
 }
 
-async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
+async function directSetup(
+	stackId: string,
+	opts: SetupOpts,
+	cmd: Command,
+	canOfferOpen: boolean,
+) {
 	const json = isJson(cmd);
 	const result = await applyStack({
 		name: stackId,
@@ -209,10 +255,9 @@ async function directSetup(stackId: string, opts: SetupOpts, cmd: Command) {
 
 	if (opts.dryRun) return;
 
-	if (result.status === "installed" && result.tryItNow) {
-		log.info("");
-		log.info(pc.bold("Try it now:"));
-		log.info(`  ${pc.dim("$")} ${pc.cyan(result.tryItNow)}`);
+	if (canOfferOpen && result.status === "installed" && !isNonInteractive(cmd)) {
+		const stack = findStack(result.extension);
+		if (stack) await offerOpen([stack]);
 	}
 
 	if (result.status === "failed") {
@@ -228,7 +273,7 @@ const setupExtensionShortcut = styledCommand("extension")
 	.option("--dry-run", "show commands without executing")
 	.action(async (name: string, opts: SetupOpts, cmd: Command) => {
 		const parentOpts = cmd.parent?.opts<SetupOpts>() ?? {};
-		await directSetup(name, { ...parentOpts, ...opts }, cmd);
+		await directSetup(name, { ...parentOpts, ...opts }, cmd, false);
 	});
 
 export const setupCommand = styledCommand("setup")
@@ -252,7 +297,7 @@ Examples:
 	.action(
 		async (stackId: string | undefined, opts: SetupOpts, cmd: Command) => {
 			if (stackId) {
-				await directSetup(stackId, opts, cmd);
+				await directSetup(stackId, opts, cmd, true);
 			} else {
 				await interactiveSetup(opts, cmd);
 			}

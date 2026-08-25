@@ -4,8 +4,6 @@ import { join } from "node:path";
 
 import { AUTHSTACK_ARCHIVE_DIR, AUTHSTACK_URL } from "./authstack.js";
 
-export { AUTHSTACK_URL };
-
 export async function downloadAuthstack(tmpDir: string): Promise<string> {
 	const sourceDir = process.env.AUTHSTACK_SOURCE_DIR;
 	if (sourceDir) {
