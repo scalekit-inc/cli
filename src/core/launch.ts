@@ -12,9 +12,13 @@ export function formatDestination(destination: Destination): string {
 		: destination.argv.join(" ");
 }
 
-function run(file: string, args: string[]): Promise<void> {
+function run(
+	file: string,
+	args: string[],
+	stdio: "ignore" | "inherit",
+): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const child = spawn(file, args, { stdio: "ignore" });
+		const child = spawn(file, args, { stdio });
 		child.on("close", (code) => {
 			if (code === 0) resolve();
 			else reject(new Error(`"${file}" exited with code ${code}`));
@@ -30,16 +34,16 @@ export async function defaultLaunch(destination: Destination): Promise<void> {
 	if (destination.kind === "argv") {
 		const [file, ...args] = destination.argv;
 		if (!file) throw new Error("empty argv");
-		await run(file, args);
+		await run(file, args, "inherit");
 		return;
 	}
 	if (process.platform === "darwin") {
-		await run("open", [destination.href]);
+		await run("open", [destination.href], "ignore");
 		return;
 	}
 	if (process.platform === "win32") {
-		await run("cmd", ["/c", "start", "", destination.href]);
+		await run("cmd", ["/c", "start", "", destination.href], "ignore");
 		return;
 	}
-	await run("xdg-open", [destination.href]);
+	await run("xdg-open", [destination.href], "ignore");
 }

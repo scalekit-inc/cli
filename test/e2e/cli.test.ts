@@ -357,12 +357,30 @@ describe("open E2E", () => {
 		);
 	});
 
-	it("open --dry-run prints the official prompt URL", async () => {
-		const { exitCode, cleanStdout } = await runCLI(["open", "--dry-run"]);
+	it("open --dry-run with no stack names one", async () => {
+		const { exitCode, cleanStderr, cleanStdout } = await runCLI([
+			"open",
+			"--dry-run",
+		]);
+		expect(exitCode).not.toBe(0);
+		expect(cleanStdout + cleanStderr).toMatch(/Name a stack/i);
+	});
+
+	it("open claude --dry-run prints the official URL", async () => {
+		const { exitCode, cleanStdout } = await runCLI([
+			"open",
+			"claude",
+			"--dry-run",
+		]);
 		expect(exitCode).toBe(0);
-		expect(cleanStdout).toContain(
-			"cursor://anysphere.cursor-deeplink/prompt?text=",
-		);
+		expect(cleanStdout).toContain("claude-cli://open");
+		expect(cleanStdout).toContain("cwd=");
+	});
+
+	it("open cc --dry-run is the same as claude", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["open", "cc", "--dry-run"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("claude-cli://open");
 	});
 
 	it("open copilot errors as not an Open target", async () => {

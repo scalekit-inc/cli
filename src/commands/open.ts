@@ -8,17 +8,23 @@ import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
 async function resolveName(
 	stackId: string | undefined,
 	skipAsk: boolean,
+	json: boolean,
 ): Promise<string> {
 	if (stackId) return stackId;
 	if (skipAsk) {
 		const only = onlyOpenCapableId();
 		if (only) return only;
-		log.error("Name a stack to Open.");
+		const message = "Name a stack to Open.";
+		if (json) jsonErr(message);
+		log.error(message);
 		process.exit(1);
 	}
 	const picked = await select({
 		message: "Open which stack?",
-		options: [{ value: "cursor", label: "Cursor" }],
+		options: [
+			{ value: "cursor", label: "Cursor" },
+			{ value: "claude", label: "Claude Code" },
+		],
 	});
 	if (isCancel(picked)) {
 		cancel("Cancelled.");
@@ -29,7 +35,7 @@ async function resolveName(
 
 export const openCommand = styledCommand("open")
 	.description("open a coding agent with the first prompt filled")
-	.argument("[stack]", "cursor (or any alias)")
+	.argument("[stack]", "cursor, claude (or any alias)")
 	.option("--dry-run", "print the destination without opening")
 	.action(
 		async (
@@ -39,7 +45,7 @@ export const openCommand = styledCommand("open")
 		) => {
 			const json = isJson(cmd);
 			const skipAsk = isNonInteractive(cmd) || !!opts.dryRun || json;
-			const name = await resolveName(stackId, skipAsk);
+			const name = await resolveName(stackId, skipAsk, json);
 			const result = await applyOpen({
 				name,
 				dryRun: !!opts.dryRun,
@@ -64,6 +70,9 @@ export const openCommand = styledCommand("open")
 
 			if (result.status === "dry_run" && result.destination) {
 				log.info(formatDestination(result.destination));
+			}
+			if (result.note) {
+				log.info(result.note);
 			}
 		},
 	);
