@@ -1,6 +1,6 @@
 import { findStack } from "../stacks/registry.js";
 import { availableExtensionNames } from "./apply-stack.js";
-import { FIRST_PROMPT } from "./first-prompt.js";
+import { CURSOR_FIRST_PROMPT, FIRST_PROMPT } from "./first-prompt.js";
 import type { Destination, Launch } from "./launch.js";
 
 const OPEN_CAPABLE = new Set(["cursor", "claude", "codex"]);
@@ -25,7 +25,7 @@ export type OpenResult = {
 
 function cursorDestination(): Destination {
 	const url = new URL("cursor://anysphere.cursor-deeplink/prompt");
-	url.searchParams.set("text", FIRST_PROMPT);
+	url.searchParams.set("text", CURSOR_FIRST_PROMPT);
 	return { kind: "url", href: url.toString() };
 }
 

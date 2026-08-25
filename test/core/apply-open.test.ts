@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { applyOpen } from "../../src/core/apply-open.js";
-import { FIRST_PROMPT } from "../../src/core/first-prompt.js";
+import {
+	CURSOR_FIRST_PROMPT,
+	FIRST_PROMPT,
+} from "../../src/core/first-prompt.js";
 import type { Destination } from "../../src/core/launch.js";
 
 const cursorHref = (() => {
 	const url = new URL("cursor://anysphere.cursor-deeplink/prompt");
-	url.searchParams.set("text", FIRST_PROMPT);
+	url.searchParams.set("text", CURSOR_FIRST_PROMPT);
 	return url.toString();
 })();
 
@@ -14,6 +17,9 @@ describe("first prompt", () => {
 		expect(FIRST_PROMPT).toContain("Build with Scalekit");
 		expect(FIRST_PROMPT).not.toContain("npx skills add");
 		expect(FIRST_PROMPT).not.toContain("@scalekit-inc/cli setup");
+		expect(CURSOR_FIRST_PROMPT).toContain("Build with Scalekit");
+		expect(CURSOR_FIRST_PROMPT.length).toBeLessThan(800);
+		expect(CURSOR_FIRST_PROMPT).not.toContain("&");
 	});
 });
 
