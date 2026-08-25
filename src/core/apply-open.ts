@@ -55,9 +55,13 @@ function codexCliDestination(): Destination {
 }
 
 function codexDesktopDestination(): Destination {
-	const prompt = encodeURIComponent(FIRST_PROMPT);
+	// Official new-thread form. Desktop drops long playbook text, same as Cursor.
+	const prompt = encodeURIComponent(CURSOR_FIRST_PROMPT);
 	const path = encodeURIComponent(process.cwd());
-	return { kind: "url", href: `codex://new?prompt=${prompt}&path=${path}` };
+	return {
+		kind: "url",
+		href: `codex://threads/new?prompt=${prompt}&path=${path}`,
+	};
 }
 
 function destinationFor(id: string, via: CodexVia): Destination {

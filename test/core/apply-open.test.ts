@@ -165,7 +165,7 @@ describe("applyOpen", () => {
 
 	it("dry-run codex desktop prints the official app URL and does not launch", async () => {
 		const launch = vi.fn(async (_dest: Destination) => {});
-		const href = `codex://new?prompt=${encodeURIComponent(FIRST_PROMPT)}&path=${encodeURIComponent(process.cwd())}`;
+		const href = `codex://threads/new?prompt=${encodeURIComponent(CURSOR_FIRST_PROMPT)}&path=${encodeURIComponent(process.cwd())}`;
 		const result = await applyOpen({
 			name: "codex",
 			dryRun: true,
@@ -196,7 +196,7 @@ describe("applyOpen", () => {
 
 	it("codex desktop calls the launcher with the official app URL", async () => {
 		const launch = vi.fn(async (_dest: Destination) => {});
-		const href = `codex://new?prompt=${encodeURIComponent(FIRST_PROMPT)}&path=${encodeURIComponent(process.cwd())}`;
+		const href = `codex://threads/new?prompt=${encodeURIComponent(CURSOR_FIRST_PROMPT)}&path=${encodeURIComponent(process.cwd())}`;
 		const result = await applyOpen({
 			name: "codex",
 			dryRun: false,

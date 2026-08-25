@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 
 export type Destination =
 	| { kind: "url"; href: string }
@@ -6,10 +6,19 @@ export type Destination =
 
 export type Launch = (destination: Destination) => Promise<void>;
 
+const CODEX_BUNDLE = "com.openai.codex";
+const CODEX_COLD_MS = 2000;
+
 export function formatDestination(destination: Destination): string {
 	return destination.kind === "url"
 		? destination.href
 		: destination.argv.join(" ");
+}
+
+/** Official Codex CLI routes the URL by bundle id. Plain `open` loses it on first launch. */
+export function macUrlOpenArgs(href: string): string[] {
+	if (href.startsWith("codex://")) return ["-b", CODEX_BUNDLE, href];
+	return [href];
 }
 
 function run(
@@ -27,6 +36,30 @@ function run(
 	});
 }
 
+function macProcessNamed(name: string): boolean {
+	try {
+		execFileSync("pgrep", ["-x", name], { stdio: "ignore" });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function openMacUrl(href: string): Promise<void> {
+	const args = macUrlOpenArgs(href);
+	const cold = href.startsWith("codex://") && !macProcessNamed("Codex");
+	try {
+		await run("open", args, "ignore");
+	} catch (err) {
+		if (!href.startsWith("codex://")) throw err;
+		await run("open", [href], "ignore");
+		return;
+	}
+	if (!cold) return;
+	await new Promise((r) => setTimeout(r, CODEX_COLD_MS));
+	await run("open", args, "ignore");
+}
+
 export async function defaultLaunch(destination: Destination): Promise<void> {
 	if (process.env.VITEST) {
 		throw new Error("defaultLaunch must not run under tests");
@@ -38,7 +71,7 @@ export async function defaultLaunch(destination: Destination): Promise<void> {
 		return;
 	}
 	if (process.platform === "darwin") {
-		await run("open", [destination.href], "ignore");
+		await openMacUrl(destination.href);
 		return;
 	}
 	if (process.platform === "win32") {
