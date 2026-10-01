@@ -63,6 +63,16 @@ scalekit setup claude -y            # or: sk setup cc -y
 scalekit setup copilot --dry-run    # or: sk setup ghcp --dry-run
 ```
 
+### Install skills directly
+
+Skip the wizard and install Scalekit skills (for Cline, Windsurf, Aider, and other agents) on their own:
+
+```bash
+scalekit skills install               # or: scalekit skills i
+scalekit skills install -y            # skip confirmation
+scalekit skills install --dry-run     # preview without installing
+```
+
 ### Open a stack
 
 After setup, Open the stack with a first prompt filled:
@@ -125,6 +135,8 @@ scalekit                              show help
 scalekit setup                        interactive setup wizard (stacks + skills)
 scalekit setup <tool>                 set up a specific tool
 scalekit setup --skip-skills          stacks only, skip skills
+
+scalekit skills install               install Scalekit skills from Authstack (alias: skills i)
 
 scalekit open                         ask which stack to open
 scalekit open cursor                  open Cursor with the first prompt
