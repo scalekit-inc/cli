@@ -22,3 +22,10 @@ export async function runCLI(args: string[], options: Options = {}) {
 		cleanStderr: clean(result.stderr),
 	};
 }
+
+/** Pretend stdin/stdout are (or are not) a terminal, for prompt guards. */
+export function setTTY(value: boolean) {
+	for (const stream of [process.stdin, process.stdout]) {
+		Object.defineProperty(stream, "isTTY", { value, configurable: true });
+	}
+}

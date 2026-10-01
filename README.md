@@ -51,6 +51,8 @@ scalekit setup          # choose "Scalekit skills" in the wizard
 scalekit setup --skip-skills   # stacks only
 ```
 
+Skills are installed only where they add something: for detected tools that did not get a native Scalekit plugin (the plugins already include the skills), plus the shared `~/.agents/skills` directory read by Codex, Cline, Amp, OpenCode and other agents. Tools you don't have are left alone.
+
 ### Direct install
 
 Skip the wizard and target a specific tool:
@@ -144,6 +146,26 @@ scalekit extension status [id]        check installed version
 | `--dry-run` | Preview commands without executing |
 | `-y, --yes` | Skip all confirmation prompts |
 | `--plain` | Disable colors and styling (also respects `NO_COLOR`) |
+
+## Telemetry
+
+The CLI sends anonymous usage events to Scalekit's PostHog instance (`https://ph.scalekit.com`) so we can see whether installs succeed. It never sends project paths, file contents, credentials or environment details.
+
+| Event | When | Properties |
+|-------|------|------------|
+| `plugin_installed` | `setup` / `extension install\|update\|uninstall` for a stack: once when started, once when it finishes | `stack`, `coding_agent`, `plugins`, `mode` (`direct`/`interactive`), `dry_run`, `status` (`initiated`/`succeeded`/`failed`), `source` (`setup`/`extension`), `cli_version` |
+| `skills_installed` | Skills install: once when started, once when it finishes | `dry_run`, `status`, `source`, `cli_version` |
+
+Events are tied to a random UUID (`distinct_id`) created on first use and stored in `~/.scalekit/anonymous_id`. A one-line notice is printed when that file is created.
+
+To opt out, set either variable:
+
+```bash
+export SCALEKIT_TELEMETRY=0
+export DO_NOT_TRACK=1   # any non-empty value
+```
+
+`DO_NOT_TRACK` also turns off telemetry in the third-party `skills` tool that the CLI runs to install skills.
 
 ## Requirements
 

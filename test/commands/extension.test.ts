@@ -29,6 +29,7 @@ import { cacheInvalidate } from "../../src/core/cache.js";
 import { checkStackVersion } from "../../src/core/version-check.js";
 import type { VersionStatus } from "../../src/stacks/registry.js";
 import { stacks } from "../../src/stacks/registry.js";
+import { setTTY } from "../helpers.js";
 
 const mockCheckStackVersion = vi.mocked(checkStackVersion);
 const mockCacheInvalidate = vi.mocked(cacheInvalidate);
@@ -56,6 +57,7 @@ beforeEach(() => {
 	vi.restoreAllMocks();
 	vi.clearAllMocks();
 	mockIsCancel.mockReturnValue(false);
+	setTTY(true);
 	vi.spyOn(process, "exit").mockImplementation((code?: number) => {
 		throw new Error(`process.exit(${code})`);
 	});

@@ -20,8 +20,13 @@ import { applySkills } from "../core/apply-skills.js";
 import { type ApplyResult, applyStack } from "../core/apply-stack.js";
 import { styledCommand } from "../core/help.js";
 import { defaultLaunch } from "../core/launch.js";
-import { isJson, isNonInteractive, jsonOut } from "../core/output.js";
-import { SKILLS_CMD } from "../core/skills.js";
+import {
+	isJson,
+	isNonInteractive,
+	jsonOut,
+	requireInteractiveTerminal,
+} from "../core/output.js";
+import { buildSkillsCommand, resolveSkillsAgents } from "../core/skills.js";
 import { findStack, type Stack, stacks } from "../stacks/registry.js";
 
 async function offerOpen(installed: Stack[]) {
@@ -69,6 +74,13 @@ interface SetupOpts {
 async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const json = isJson(cmd);
 	const nonInteractive = isNonInteractive(cmd);
+
+	// Exit cleanly rather than hang on a prompt. We do not silently fall back
+	// to -y: that installs into every detected tool, which should be an
+	// explicit choice.
+	if (!nonInteractive) {
+		requireInteractiveTerminal(json, "npx @scalekit-inc/cli setup -y");
+	}
 
 	if (!json) intro("Scalekit Setup");
 
@@ -126,17 +138,29 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 
 	let skillsInstalled = false;
 
+	// Native plugins already bundle the skills: only install them for
+	// detected agents that did not get a plugin, plus the shared
+	// ~/.agents/skills dir unless that would duplicate a plugin.
+	const skillsAgents = resolveSkillsAgents({
+		detected: detected.map((s) => s.id),
+		nativePlugin: results
+			.filter((r) => r.status === "installed" || r.status === "dry_run")
+			.map((r) => r.extension),
+	});
+	const skillsCmd = buildSkillsCommand({ agents: skillsAgents });
+
 	if (installSkillsSelected) {
-		if (nonInteractive || opts.dryRun) {
+		if (nonInteractive || opts.dryRun || skillsAgents.length === 0) {
 			const skills = await applySkills({
 				dryRun: !!opts.dryRun,
 				json,
 				yes: true,
 				emit: "steps",
+				agents: skillsAgents,
 			});
 			skillsInstalled = skills.status === "installed";
 			if (skills.status === "failed" && !json) {
-				log.info(`You can install later: ${pc.cyan(SKILLS_CMD)}`);
+				log.info(`You can install later: ${pc.cyan(skillsCmd)}`);
 			}
 		} else {
 			const action = await select({
@@ -145,7 +169,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 					{
 						value: "auto",
 						label: "Install now",
-						hint: `runs ${SKILLS_CMD}`,
+						hint: `runs ${skillsCmd}`,
 					},
 					{
 						value: "manual",
@@ -161,18 +185,19 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 					json,
 					yes: true,
 					emit: "steps",
+					agents: skillsAgents,
 				});
 				skillsInstalled = skills.status === "installed";
 				if (skills.status === "installed" && !json) {
 					log.success("Skills installed from Authstack.");
 				}
 				if (skills.status === "failed" && !json) {
-					log.info(`You can install later: ${pc.cyan(SKILLS_CMD)}`);
+					log.info(`You can install later: ${pc.cyan(skillsCmd)}`);
 				}
 			} else {
 				log.info("");
 				log.info("Run this to install Scalekit skills from Authstack:");
-				log.info(`  ${pc.cyan(SKILLS_CMD)}`);
+				log.info(`  ${pc.cyan(skillsCmd)}`);
 				log.info(
 					"  (This pulls skills like setup guidance; the content is maintained in the Authstack repo.)",
 				);

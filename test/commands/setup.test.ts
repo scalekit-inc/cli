@@ -13,14 +13,12 @@ vi.mock("@clack/prompts", () => ({
 	isCancel: vi.fn(() => false),
 }));
 
-vi.mock("../../src/core/skills.js", () => ({
-	SKILLS_CMD: `npx skills add ${AUTHSTACK_REPO} --skill '*' --agent '*' -g`,
-}));
-
 vi.mock("../../src/core/apply-skills.js", () => ({
 	applySkills: vi.fn(async () => ({
 		status: "installed",
-		steps: [`npx skills add ${AUTHSTACK_REPO} --skill '*' --agent '*' -g`],
+		steps: [
+			`npx skills add ${AUTHSTACK_REPO} --skill '*' --agent universal -g`,
+		],
 	})),
 }));
 
@@ -56,6 +54,7 @@ import { applyOpen } from "../../src/core/apply-open.js";
 import { applySkills } from "../../src/core/apply-skills.js";
 import { emitSetupBeacon } from "../../src/core/beacon.js";
 import { stacks } from "../../src/stacks/registry.js";
+import { setTTY } from "../helpers.js";
 
 const mockLog = vi.mocked(log);
 const mockMultiselect = vi.mocked(multiselect);
@@ -88,6 +87,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	mockIsCancel.mockReturnValue(false);
 	mockEmitSetupBeacon.mockClear();
+	setTTY(true);
 	vi.spyOn(process, "exit").mockImplementation((code?: number) => {
 		throw new Error(`process.exit(${code})`);
 	});
@@ -496,5 +496,99 @@ describe("setup offers Open", () => {
 		mockConfirm.mockResolvedValue(true as never);
 		await run(["extension", "cursor"]);
 		expect(mockApplyOpen).not.toHaveBeenCalled();
+	});
+});
+
+describe("skills agent targeting (no duplicates, detected agents only)", () => {
+	function stubOnly(detected: string[], failing: string[] = []) {
+		for (const s of stacks) {
+			vi.spyOn(s, "detect").mockReturnValue(detected.includes(s.id));
+			vi.spyOn(s, "install").mockImplementation(async (opts) => {
+				if (!opts?.preview && failing.includes(s.id)) throw new Error("boom");
+				return [`${s.id}-step`];
+			});
+		}
+	}
+
+	it("Claude Code plugin installed → skills skip Claude Code", async () => {
+		stubOnly(["claude"]);
+		await run(["--yes"]);
+
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ agents: ["universal"] }),
+		);
+	});
+
+	it("Claude Code plugin failed → skills target Claude Code", async () => {
+		stubOnly(["claude"], ["claude"]);
+		await expect(run(["--yes"])).rejects.toThrow("process.exit(1)");
+
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ agents: ["claude-code", "universal"] }),
+		);
+	});
+
+	it("Cursor + Claude Code plugins installed → no skills agents", async () => {
+		stubOnly(["cursor", "claude"]);
+		await run(["--yes"]);
+
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ agents: [] }),
+		);
+	});
+
+	it("interactive: manual hint shows only the needed agents", async () => {
+		stubOnly(["claude"]);
+		mockMultiselect.mockResolvedValue(["claude"] as never);
+		mockConfirm.mockResolvedValue(false as never);
+		mockSelect.mockResolvedValue("manual" as never);
+		await run([]);
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("--agent universal -g"))).toBe(true);
+		expect(calls.some((c) => c.includes("claude-code"))).toBe(false);
+	});
+
+	it("interactive: does not ask about skills when plugins cover them", async () => {
+		stubOnly(["cursor", "claude"]);
+		mockMultiselect.mockResolvedValue(["cursor", "claude"] as never);
+		mockConfirm.mockResolvedValue(false as never);
+		await run([]);
+		expect(mockSelect).not.toHaveBeenCalledWith(
+			expect.objectContaining({
+				message: expect.stringContaining("skills"),
+			}),
+		);
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ agents: [] }),
+		);
+	});
+});
+
+describe("setup without a terminal", () => {
+	it("exits 1 with a clear message instead of prompting", async () => {
+		stubStacks({ detect: true });
+		setTTY(false);
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await expect(run([])).rejects.toThrow("process.exit(1)");
+
+		expect(mockMultiselect).not.toHaveBeenCalled();
+		expect(err).toHaveBeenCalledWith(
+			expect.stringContaining("npx @scalekit-inc/cli setup -y"),
+		);
+	});
+
+	it("still runs with -y", async () => {
+		stubStacks({ detect: true });
+		setTTY(false);
+		await run(["--yes"]);
+		expect(mockApplySkills).toHaveBeenCalled();
+	});
+
+	it("direct setup without -y exits instead of confirming", async () => {
+		setTTY(false);
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		await expect(run(["cursor"])).rejects.toThrow("process.exit(1)");
+		expect(mockConfirm).not.toHaveBeenCalled();
 	});
 });
