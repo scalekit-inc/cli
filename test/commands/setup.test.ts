@@ -54,6 +54,7 @@ import { applyOpen } from "../../src/core/apply-open.js";
 import { applySkills } from "../../src/core/apply-skills.js";
 import { emitSetupBeacon } from "../../src/core/beacon.js";
 import { stacks } from "../../src/stacks/registry.js";
+import { setTTY } from "../helpers.js";
 
 const mockLog = vi.mocked(log);
 const mockMultiselect = vi.mocked(multiselect);
@@ -86,6 +87,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	mockIsCancel.mockReturnValue(false);
 	mockEmitSetupBeacon.mockClear();
+	setTTY(true);
 	vi.spyOn(process, "exit").mockImplementation((code?: number) => {
 		throw new Error(`process.exit(${code})`);
 	});
@@ -559,5 +561,34 @@ describe("skills agent targeting (no duplicates, detected agents only)", () => {
 		expect(mockApplySkills).toHaveBeenCalledWith(
 			expect.objectContaining({ agents: [] }),
 		);
+	});
+});
+
+describe("setup without a terminal", () => {
+	it("exits 1 with a clear message instead of prompting", async () => {
+		stubStacks({ detect: true });
+		setTTY(false);
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await expect(run([])).rejects.toThrow("process.exit(1)");
+
+		expect(mockMultiselect).not.toHaveBeenCalled();
+		expect(err).toHaveBeenCalledWith(
+			expect.stringContaining("npx @scalekit-inc/cli setup -y"),
+		);
+	});
+
+	it("still runs with -y", async () => {
+		stubStacks({ detect: true });
+		setTTY(false);
+		await run(["--yes"]);
+		expect(mockApplySkills).toHaveBeenCalled();
+	});
+
+	it("direct setup without -y exits instead of confirming", async () => {
+		setTTY(false);
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		await expect(run(["cursor"])).rejects.toThrow("process.exit(1)");
+		expect(mockConfirm).not.toHaveBeenCalled();
 	});
 });

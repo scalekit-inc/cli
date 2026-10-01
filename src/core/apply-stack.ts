@@ -3,7 +3,7 @@ import pc from "picocolors";
 import { findStack, stacks } from "../stacks/registry.js";
 import { emitSetupBeacon } from "./beacon.js";
 import { cacheInvalidate } from "./cache.js";
-import { jsonErr, jsonOut } from "./output.js";
+import { jsonErr, jsonOut, requireInteractiveTerminal } from "./output.js";
 
 export type ApplySource = "setup" | "extension";
 export type ApplyVerb = "install" | "update" | "uninstall";
@@ -61,6 +61,10 @@ export async function applyStack(input: {
 	}
 
 	if (!input.skipConfirm) {
+		requireInteractiveTerminal(
+			input.json,
+			`npx @scalekit-inc/cli ${input.source === "setup" ? "setup" : `extension ${input.verb}`} ${stack.id} -y`,
+		);
 		const ok = await confirm({
 			message: confirmMessage[input.verb](stack.name),
 		});

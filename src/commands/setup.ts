@@ -20,7 +20,12 @@ import { applySkills } from "../core/apply-skills.js";
 import { type ApplyResult, applyStack } from "../core/apply-stack.js";
 import { styledCommand } from "../core/help.js";
 import { defaultLaunch } from "../core/launch.js";
-import { isJson, isNonInteractive, jsonOut } from "../core/output.js";
+import {
+	isJson,
+	isNonInteractive,
+	jsonOut,
+	requireInteractiveTerminal,
+} from "../core/output.js";
 import { buildSkillsCommand, resolveSkillsAgents } from "../core/skills.js";
 import { findStack, type Stack, stacks } from "../stacks/registry.js";
 
@@ -69,6 +74,13 @@ interface SetupOpts {
 async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const json = isJson(cmd);
 	const nonInteractive = isNonInteractive(cmd);
+
+	// Exit cleanly rather than hang on a prompt. We do not silently fall back
+	// to -y: that installs into every detected tool, which should be an
+	// explicit choice.
+	if (!nonInteractive) {
+		requireInteractiveTerminal(json, "npx @scalekit-inc/cli setup -y");
+	}
 
 	if (!json) intro("Scalekit Setup");
 

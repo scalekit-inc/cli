@@ -23,3 +23,20 @@ export function jsonErr(message: string): never {
 	console.error(JSON.stringify({ error: message }));
 	process.exit(1);
 }
+
+/** Prompts need a real terminal on both ends; piped/CI runs have none. */
+export function hasInteractiveTerminal(): boolean {
+	return !!process.stdin.isTTY && !!process.stdout.isTTY;
+}
+
+/**
+ * Fail fast instead of rendering a prompt nobody can answer (without a TTY
+ * clack never resolves and Node exits with "unsettled top-level await").
+ */
+export function requireInteractiveTerminal(json: boolean, retry: string): void {
+	if (hasInteractiveTerminal()) return;
+	const message = `No interactive terminal; run \`${retry}\` (-y skips prompts).`;
+	if (json) jsonErr(message);
+	console.error(message);
+	process.exit(1);
+}
