@@ -51,6 +51,8 @@ scalekit setup          # choose "Scalekit skills" in the wizard
 scalekit setup --skip-skills   # stacks only
 ```
 
+Skills are installed only where they add something: for detected tools that did not get a native Scalekit plugin (the plugins already include the skills), plus the shared `~/.agents/skills` directory read by Codex, Cline, Amp, OpenCode and other agents. Tools you don't have are left alone.
+
 ### Direct install
 
 Skip the wizard and target a specific tool:
