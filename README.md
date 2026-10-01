@@ -147,6 +147,26 @@ scalekit extension status [id]        check installed version
 | `-y, --yes` | Skip all confirmation prompts |
 | `--plain` | Disable colors and styling (also respects `NO_COLOR`) |
 
+## Telemetry
+
+The CLI sends anonymous usage events to Scalekit's PostHog instance (`https://ph.scalekit.com`) so we can see whether installs succeed. It never sends project paths, file contents, credentials or environment details.
+
+| Event | When | Properties |
+|-------|------|------------|
+| `plugin_installed` | `setup` / `extension install\|update\|uninstall` for a stack: once when started, once when it finishes | `stack`, `coding_agent`, `plugins`, `mode` (`direct`/`interactive`), `dry_run`, `status` (`initiated`/`succeeded`/`failed`), `source` (`setup`/`extension`), `cli_version` |
+| `skills_installed` | Skills install: once when started, once when it finishes | `dry_run`, `status`, `source`, `cli_version` |
+
+Events are tied to a random UUID (`distinct_id`) created on first use and stored in `~/.scalekit/anonymous_id`. A one-line notice is printed when that file is created.
+
+To opt out, set either variable:
+
+```bash
+export SCALEKIT_TELEMETRY=0
+export DO_NOT_TRACK=1   # any non-empty value
+```
+
+`DO_NOT_TRACK` also turns off telemetry in the third-party `skills` tool that the CLI runs to install skills.
+
 ## Requirements
 
 - Node.js >= 20

@@ -17,6 +17,10 @@ async function getOrCreateDistinctId(): Promise<string> {
 		const id = randomUUID();
 		await mkdir(dirname(ID_FILE), { recursive: true });
 		await writeFile(ID_FILE, id, "utf-8");
+		// One-time notice: the id file only gets created on the first event.
+		process.stderr.write(
+			"Scalekit CLI sends anonymous usage events (see README → Telemetry). Opt out: SCALEKIT_TELEMETRY=0 or DO_NOT_TRACK=1\n",
+		);
 		return id;
 	}
 }
