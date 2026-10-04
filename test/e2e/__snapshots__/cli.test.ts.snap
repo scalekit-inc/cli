@@ -36,11 +36,17 @@ OPTIONS
   --skip-skills  skip Scalekit skills (from Authstack)
   -h, --help     display help for command
 
+GLOBAL OPTIONS
+  --plain  disable colors and styling (also respects NO_COLOR env)
+  --json   output machine-readable JSON
+
 Examples:
   $ scalekit setup              interactive setup wizard
   $ scalekit setup cursor       set up Cursor directly (alias for setup extension cursor)
   $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
-  $ scalekit setup --dry-run    preview commands without running them
+  $ scalekit setup -y           set up every detected agent, no prompts
+  $ scalekit setup --dry-run    preview what -y would do (no prompts, nothing runs)
+  $ scalekit setup -y --json    machine-readable result on stdout
   $ scalekit setup --skip-skills          stacks only (skip Scalekit skills)"
 `;

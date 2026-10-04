@@ -33,6 +33,47 @@ describe("CLI E2E", () => {
 		expect(cleanStdout).toMatchSnapshot();
 	});
 
+	it("setup --help lists the global --json flag", async () => {
+		const { exitCode, cleanStdout } = await runCLI(["setup", "--help"]);
+		expect(exitCode).toBe(0);
+		expect(cleanStdout).toContain("--json");
+	});
+
+	it("setup --dry-run with no terminal previews instead of failing", async () => {
+		const { exitCode, cleanStdout, cleanStderr } = await runCLI(
+			["setup", "--dry-run"],
+			{ env: { DO_NOT_TRACK: "1" } },
+		);
+		expect(exitCode).toBe(0);
+		expect(cleanStderr).not.toContain("No interactive terminal");
+		expect(cleanStdout).toContain("npx skills add");
+		expect(cleanStdout).toContain("Dry run complete");
+	});
+
+	it("skills install with no terminal and no -y exits non-zero with the hint", async () => {
+		const { exitCode, cleanStderr } = await runCLI(["skills", "install"], {
+			env: { DO_NOT_TRACK: "1" },
+		});
+		expect(exitCode).toBe(1);
+		expect(cleanStderr).toContain("npx @scalekit-inc/cli skills install -y");
+	});
+
+	it("open with no terminal explains itself (not exit 13)", async () => {
+		const { exitCode, cleanStderr } = await runCLI(["open"], {
+			env: { DO_NOT_TRACK: "1" },
+		});
+		expect(exitCode).toBe(1);
+		expect(cleanStderr).toContain("No interactive terminal");
+	});
+
+	it("open codex with no terminal explains itself (not exit 13)", async () => {
+		const { exitCode, cleanStderr } = await runCLI(["open", "codex"], {
+			env: { DO_NOT_TRACK: "1" },
+		});
+		expect(exitCode).toBe(1);
+		expect(cleanStderr).toContain("npx @scalekit-inc/cli open codex -y");
+	});
+
 	it("setup --dry-run --yes shows commands without executing", async () => {
 		const { exitCode, cleanStdout } = await runCLI([
 			"setup",
