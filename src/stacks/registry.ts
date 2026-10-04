@@ -9,6 +9,8 @@ export interface VersionStatus {
 
 export interface ApplyOpts {
 	preview?: boolean;
+	/** Non-fatal problem the user must act on (install still succeeded). */
+	onWarning?: (message: string) => void;
 }
 
 export interface Stack {

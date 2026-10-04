@@ -68,6 +68,26 @@ async function readName(path: string): Promise<string | null> {
 	}
 }
 
+/**
+ * Codex reads one personal marketplace file. When another marketplace owns
+ * it we leave it alone, so Codex will not list the Scalekit plugins until
+ * the user merges them in.
+ */
+export function marketplaceConflictMessage(input: {
+	path: string;
+	existingName: string;
+	marketplaceDir: string;
+}): string {
+	const kits = AUTHSTACK_KITS.map((kit) =>
+		join(input.marketplaceDir, "kits", kit),
+	).join(" and ");
+	return [
+		`${input.path} already belongs to the "${input.existingName}" marketplace, so it was left unchanged and Codex will not list the Scalekit plugins yet.`,
+		`To fix: add ${AUTHSTACK_KITS.join(" and ")} to the "plugins" list in that file (local sources: ${kits}),`,
+		"or move the file aside and run `npx @scalekit-inc/cli setup codex -y` again.",
+	].join("\n");
+}
+
 function installSteps(placement: FilesystemPlacement): string[] {
 	const dest = placement.destDir();
 	if (placement.kind === "kits") {
@@ -141,6 +161,14 @@ export function filesystemStack(row: FilesystemRow): Stack {
 						if (existing === null || existing === extra.oursName) {
 							await mkdir(dirname(extraPath), { recursive: true });
 							await writeFile(extraPath, buildMarketplaceJson(dest), "utf-8");
+						} else {
+							opts?.onWarning?.(
+								marketplaceConflictMessage({
+									path: extraPath,
+									existingName: existing,
+									marketplaceDir: dest,
+								}),
+							);
 						}
 					}
 				}

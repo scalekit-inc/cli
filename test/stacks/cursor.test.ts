@@ -109,6 +109,15 @@ describe("cursorStack.install", () => {
 	});
 });
 
+describe("cursor next steps", () => {
+	it("reload the window, then enable the plugins in Settings", () => {
+		const steps = (cursorStack.nextSteps ?? []).join("\n");
+		expect(steps).toContain("Developer: Reload Window");
+		expect(steps).toContain("Settings > Cursor Settings > Plugins");
+		expect(steps).toContain("agentkit, saaskit");
+	});
+});
+
 describe("cursorStack.uninstall", () => {
 	it("removes agentkit and saaskit from plugin dir", async () => {
 		await cursorStack.uninstall?.();
