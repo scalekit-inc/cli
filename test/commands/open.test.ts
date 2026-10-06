@@ -21,6 +21,7 @@ vi.mock("../../src/core/apply-open.js", async () => {
 import { select } from "@clack/prompts";
 import { openCommand } from "../../src/commands/open.js";
 import { applyOpen } from "../../src/core/apply-open.js";
+import { setTTY } from "../helpers.js";
 
 const mockSelect = vi.mocked(select);
 const mockApply = vi.mocked(applyOpen);
@@ -35,6 +36,7 @@ function root(): Command {
 
 beforeEach(() => {
 	vi.clearAllMocks();
+	setTTY(true);
 	vi.spyOn(process, "exit").mockImplementation((code?: number) => {
 		throw new Error(`process.exit(${code})`);
 	});
@@ -95,6 +97,47 @@ describe("open codex", () => {
 				via: "cli",
 				dryRun: true,
 			}),
+		);
+	});
+});
+
+describe("open without a terminal", () => {
+	it("open (no stack) exits 1 with a hint instead of prompting", async () => {
+		setTTY(false);
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await expect(root().parseAsync(["open"], { from: "user" })).rejects.toThrow(
+			"process.exit(1)",
+		);
+
+		expect(mockSelect).not.toHaveBeenCalled();
+		expect(mockApply).not.toHaveBeenCalled();
+		expect(err).toHaveBeenCalledWith(
+			expect.stringContaining(
+				"npx @scalekit-inc/cli open <cursor|claude|codex> -y",
+			),
+		);
+	});
+
+	it("open codex exits 1 with a hint instead of asking CLI or desktop", async () => {
+		setTTY(false);
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await expect(
+			root().parseAsync(["open", "codex"], { from: "user" }),
+		).rejects.toThrow("process.exit(1)");
+
+		expect(mockSelect).not.toHaveBeenCalled();
+		expect(err).toHaveBeenCalledWith(
+			expect.stringContaining("npx @scalekit-inc/cli open codex -y"),
+		);
+	});
+
+	it("open cursor needs no prompt, so it still runs", async () => {
+		setTTY(false);
+		await root().parseAsync(["open", "cursor"], { from: "user" });
+		expect(mockApply).toHaveBeenCalledWith(
+			expect.objectContaining({ name: "cursor" }),
 		);
 	});
 });

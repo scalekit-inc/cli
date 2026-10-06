@@ -3,7 +3,13 @@ import type { Command } from "commander";
 import { applyOpen, type CodexVia, pickCodexVia } from "../core/apply-open.js";
 import { styledCommand } from "../core/help.js";
 import { defaultLaunch, formatDestination } from "../core/launch.js";
-import { isJson, isNonInteractive, jsonErr, jsonOut } from "../core/output.js";
+import {
+	isJson,
+	isNonInteractive,
+	jsonErr,
+	jsonOut,
+	requireInteractiveTerminal,
+} from "../core/output.js";
 import { findStack } from "../stacks/registry.js";
 
 async function resolveName(
@@ -18,6 +24,10 @@ async function resolveName(
 		log.error(message);
 		process.exit(1);
 	}
+	requireInteractiveTerminal(
+		json,
+		"npx @scalekit-inc/cli open <cursor|claude|codex> -y",
+	);
 	const picked = await select({
 		message: "Open which stack?",
 		options: [
@@ -33,9 +43,14 @@ async function resolveName(
 	return picked as string;
 }
 
-async function resolveVia(name: string, skipAsk: boolean): Promise<CodexVia> {
+async function resolveVia(
+	name: string,
+	skipAsk: boolean,
+	json: boolean,
+): Promise<CodexVia> {
 	if (findStack(name)?.id !== "codex") return "cli";
 	if (skipAsk) return "cli";
+	requireInteractiveTerminal(json, "npx @scalekit-inc/cli open codex -y");
 	const picked = await pickCodexVia();
 	if (picked === undefined) {
 		cancel("Cancelled.");
@@ -59,7 +74,7 @@ export const openCommand = styledCommand("open")
 			const skipAsk =
 				isNonInteractive(cmd) || !!opts.dryRun || json || !!opts.yes;
 			const name = await resolveName(stackId, skipAsk, json);
-			const via = await resolveVia(name, skipAsk);
+			const via = await resolveVia(name, skipAsk, json);
 			const result = await applyOpen({
 				name,
 				dryRun: !!opts.dryRun,

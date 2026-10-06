@@ -54,14 +54,47 @@ function formatOptions(cmd: Command, helper: Help): string | null {
 	return [pc.bold("OPTIONS"), ...lines].join("\n");
 }
 
+/**
+ * Root options that also apply to this subcommand (e.g. `--json`). Options
+ * whose flags the subcommand redefines (its own `-y, --yes`) are left out.
+ */
+function formatGlobalOptions(cmd: Command, helper: Help): string | null {
+	if (!cmd.parent) return null;
+	const local = new Set(
+		helper
+			.visibleOptions(cmd)
+			.flatMap((o) => [o.short, o.long])
+			.filter(Boolean),
+	);
+	const options = helper
+		.visibleGlobalOptions(cmd)
+		.filter(
+			(o) =>
+				o.attributeName() !== "version" &&
+				!local.has(o.short ?? "") &&
+				!local.has(o.long ?? ""),
+		);
+	if (options.length === 0) return null;
+
+	const pad = Math.max(...options.map((o) => helper.optionTerm(o).length)) + 2;
+	const lines = options.map(
+		(opt) =>
+			`  ${pc.yellow(helper.optionTerm(opt).padEnd(pad))}${pc.dim(opt.description)}`,
+	);
+
+	return [pc.bold("GLOBAL OPTIONS"), ...lines].join("\n");
+}
+
 export function scalekitHelp() {
 	return {
+		showGlobalOptions: true,
 		formatHelp(cmd: Command, helper: Help): string {
 			const sections = [
 				formatHeader(cmd),
 				formatUsage(cmd, helper),
 				formatCommands(cmd, helper),
 				formatOptions(cmd, helper),
+				formatGlobalOptions(cmd, helper),
 			].filter(Boolean);
 
 			return `${sections.join("\n\n")}\n`;

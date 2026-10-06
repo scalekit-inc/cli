@@ -36,6 +36,7 @@ import { skillsCommand } from "../../src/commands/skills.js";
 import { emitSkillsBeacon } from "../../src/core/beacon.js";
 import { installSkills } from "../../src/core/skills.js";
 import { stacks } from "../../src/stacks/registry.js";
+import { setTTY } from "../helpers.js";
 
 const mockInstall = vi.mocked(installSkills);
 const mockBeacon = vi.mocked(emitSkillsBeacon);
@@ -59,6 +60,7 @@ function stubDetect(detected: Record<string, boolean>, plugin = false) {
 beforeEach(() => {
 	vi.restoreAllMocks();
 	vi.clearAllMocks();
+	setTTY(true);
 	stubDetect({});
 	vi.spyOn(process, "exit").mockImplementation((code?: number) => {
 		throw new Error(`process.exit(${code})`);
@@ -120,6 +122,60 @@ describe("skills install agent targeting", () => {
 		expect(mockInstall).not.toHaveBeenCalled();
 		expect(mockLog.info).toHaveBeenCalledWith(
 			expect.stringContaining("already include them"),
+		);
+	});
+});
+
+describe("skills install without a terminal", () => {
+	it("exits 1 with the -y hint instead of a no-op 'installed'", async () => {
+		setTTY(false);
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await expect(run(["install"])).rejects.toThrow("process.exit(1)");
+
+		expect(err).toHaveBeenCalledWith(
+			expect.stringContaining("npx @scalekit-inc/cli skills install -y"),
+		);
+		expect(mockInstall).not.toHaveBeenCalled();
+		expect(mockLog.success).not.toHaveBeenCalled();
+	});
+
+	it("--json prints the hint as a JSON error", async () => {
+		setTTY(false);
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+		const { Command } = await import("commander");
+		const program = new Command();
+		program.option("--json");
+		program.addCommand(skillsCommand);
+
+		await expect(
+			program.parseAsync(["--json", "skills", "install"], { from: "user" }),
+		).rejects.toThrow("process.exit(1)");
+
+		const data = JSON.parse(err.mock.calls[0][0] as string);
+		expect(data.error).toContain("skills install -y");
+	});
+
+	it("-y still installs", async () => {
+		setTTY(false);
+		await run(["install", "-y"]);
+		expect(mockInstall).toHaveBeenCalledWith(
+			expect.objectContaining({ yes: true }),
+		);
+	});
+
+	it("--dry-run still previews", async () => {
+		setTTY(false);
+		await run(["install", "--dry-run"]);
+		expect(mockInstall).toHaveBeenCalledWith(
+			expect.objectContaining({ preview: true }),
+		);
+	});
+
+	it("with a terminal and no -y, the skills tool may prompt", async () => {
+		await run(["install"]);
+		expect(mockInstall).toHaveBeenCalledWith(
+			expect.objectContaining({ yes: false }),
 		);
 	});
 });

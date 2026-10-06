@@ -27,6 +27,11 @@ export const stackTable: Stack[] = [
 				),
 			manifestRel: ".cursor-plugin",
 		},
+		nextSteps: [
+			'Reload Cursor: restart it, or run "Developer: Reload Window" from the Command Palette',
+			`Open Settings > Cursor Settings > Plugins and enable the Scalekit plugins (${AUTHSTACK_KITS.join(", ")})`,
+			'Try: "Connect my Gmail account using Scalekit"',
+		],
 	}),
 	pluginCliStack({
 		id: "claude",
@@ -70,7 +75,11 @@ export const stackTable: Stack[] = [
 				),
 			manifestRel: ".codex-plugin",
 		},
-		nextSteps: ["Run `codex mcp login scalekit` to authenticate"],
+		nextSteps: [
+			"Restart Codex",
+			`Run \`/plugins\` to open the plugin directory, then enable ${AUTHSTACK_KITS.join(" and ")} from the ${AUTHSTACK_MARKETPLACE} marketplace`,
+			'Try: "Connect my Gmail account using Scalekit"',
+		],
 	}),
 	pluginCliStack({
 		id: "copilot",

@@ -210,15 +210,33 @@ describe("extension install next steps", () => {
 		);
 	});
 
-	it("does not show next steps for cursor (none defined)", async () => {
+	it("shows next steps for cursor (reload, then enable plugins)", async () => {
 		const cursor = stacks[0];
 		vi.spyOn(cursor, "install").mockResolvedValue([]);
 		mockConfirm.mockResolvedValue(true as never);
 
 		await run(["install", "cursor"]);
 
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Next steps"),
+		);
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Developer: Reload Window"),
+		);
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Settings > Cursor Settings > Plugins"),
+		);
+	});
+
+	it("shows Codex next steps without the MCP login", async () => {
+		const codex = stacks[2];
+		vi.spyOn(codex, "install").mockResolvedValue([]);
+
+		await run(["install", "codex", "-y"]);
+
 		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
-		expect(calls.some((c) => c.includes("Next steps"))).toBe(false);
+		expect(calls.some((c) => c.includes("/plugins"))).toBe(true);
+		expect(calls.some((c) => c.includes("mcp login"))).toBe(false);
 	});
 
 	it("does not show next steps on dry-run", async () => {
@@ -528,5 +546,78 @@ describe("extension update error handling", () => {
 		expect(mockLog.error).toHaveBeenCalledWith(
 			expect.stringContaining("update broke"),
 		);
+	});
+});
+
+describe("install warnings", () => {
+	const WARNING = "marketplace.json belongs to another marketplace";
+
+	function stubWarningInstall() {
+		const codex = stacks[2];
+		vi.spyOn(codex, "install").mockImplementation(async (opts) => {
+			if (!opts?.preview) opts?.onWarning?.(WARNING);
+			return ["codex-step"];
+		});
+	}
+
+	it("prints the warning and does not claim a clean 'done'", async () => {
+		stubWarningInstall();
+
+		await run(["install", "codex", "-y"]);
+
+		expect(mockLog.warn).toHaveBeenCalledWith(WARNING);
+		expect(mockLog.warn).toHaveBeenCalledWith(
+			"Codex — done, but see the warning above",
+		);
+		expect(mockLog.success).not.toHaveBeenCalledWith("Codex — done");
+	});
+
+	it("includes warnings in --json output", async () => {
+		stubWarningInstall();
+		const out = vi.spyOn(console, "log").mockImplementation(() => {});
+		const { Command } = await import("commander");
+		const program = new Command();
+		program.option("--json");
+		program.addCommand(extensionCommand);
+
+		await program.parseAsync(
+			["--json", "extension", "install", "codex", "-y"],
+			{
+				from: "user",
+			},
+		);
+
+		const data = JSON.parse(out.mock.calls.at(-1)?.[0] as string);
+		expect(data.status).toBe("installed");
+		expect(data.warnings).toEqual([WARNING]);
+		expect(mockLog.warn).not.toHaveBeenCalled();
+	});
+});
+
+describe("retry hints keep --dry-run", () => {
+	it("applyStack's no-terminal hint keeps --dry-run", async () => {
+		const { applyStack } = await import("../../src/core/apply-stack.js");
+		setTTY(false);
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await expect(
+			applyStack({
+				name: "cursor",
+				verb: "install",
+				dryRun: true,
+				json: false,
+				skipConfirm: false,
+				source: "extension",
+				mode: "direct",
+				emit: "full",
+			}),
+		).rejects.toThrow("process.exit(1)");
+
+		expect(err).toHaveBeenCalledWith(
+			expect.stringContaining(
+				"npx @scalekit-inc/cli extension install cursor --dry-run -y",
+			),
+		);
+		expect(mockConfirm).not.toHaveBeenCalled();
 	});
 });

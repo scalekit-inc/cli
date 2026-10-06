@@ -55,6 +55,34 @@ describe("claudeStack.detect", () => {
 });
 
 describe("claudeStack.install", () => {
+	beforeEach(() => {
+		// `which claude` succeeds: the CLI is on PATH.
+		mockExecFileSync.mockReturnValue(Buffer.from(""));
+	});
+
+	it("fails with an install pointer when `claude` is not on PATH", async () => {
+		mockExecFileSync.mockImplementation(() => {
+			throw new Error("not found");
+		});
+		const err = await claudeStack.install().catch((e: Error) => e);
+		expect(err).toBeInstanceOf(Error);
+		expect((err as Error).message).toContain(
+			"Claude Code CLI (`claude`) not found on PATH. Install it first: https://",
+		);
+		expect((err as Error).message).not.toContain("127");
+		expect(mockSpawn).not.toHaveBeenCalled();
+	});
+
+	it("preview does not require `claude` on PATH", async () => {
+		mockExecFileSync.mockImplementation(() => {
+			throw new Error("not found");
+		});
+		await expect(claudeStack.install({ preview: true })).resolves.toHaveLength(
+			3,
+		);
+		expect(mockSpawn).not.toHaveBeenCalled();
+	});
+
 	it("resolves when all commands succeed", async () => {
 		fakeSpawn(0);
 		await expect(claudeStack.install()).resolves.toEqual(

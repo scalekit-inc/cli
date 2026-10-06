@@ -16,7 +16,7 @@ import {
 	isOpenCapable,
 	pickCodexVia,
 } from "../core/apply-open.js";
-import { applySkills } from "../core/apply-skills.js";
+import { applySkills, type SkillsResult } from "../core/apply-skills.js";
 import { type ApplyResult, applyStack } from "../core/apply-stack.js";
 import { styledCommand } from "../core/help.js";
 import { defaultLaunch } from "../core/launch.js";
@@ -71,9 +71,41 @@ interface SetupOpts {
 	skipSkills?: boolean;
 }
 
+const SETUP_ONE_AGENT = `npx @scalekit-inc/cli setup <${stacks.map((s) => s.id).join("|")}> -y`;
+
+/**
+ * Printed when `setup -y` finds no supported coding agent. Installing every
+ * stack there fails for the missing CLIs and creates config dirs for tools
+ * the user does not have, so only the universal skills are installed.
+ */
+export function noAgentDetectedMessage(
+	skills: SkillsResult["status"] | "not_requested",
+): string {
+	const names = stacks.map((s) => s.name).join(", ");
+	const skillsLine: Record<typeof skills, string> = {
+		installed: "Installed Scalekit skills to ~/.agents/skills.",
+		dry_run: "Would install Scalekit skills to ~/.agents/skills.",
+		failed: "Scalekit skills were not installed (see the error above).",
+		skipped: "Scalekit skills were not installed.",
+		not_requested: "Skipped Scalekit skills (--skip-skills).",
+	};
+	return [
+		`No supported coding agent detected (${names}).`,
+		skillsLine[skills],
+		`To set up one agent: ${SETUP_ONE_AGENT}`,
+	].join(" ");
+}
+
+type SkillsJson =
+	| (SkillsResult & { agents: string[] })
+	| { status: "not_requested" | "manual"; command?: string };
+
 async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const json = isJson(cmd);
-	const nonInteractive = isNonInteractive(cmd);
+	const dryRun = !!opts.dryRun;
+	// --dry-run never prompts: it previews what -y would do, so it also works
+	// without a terminal and never turns into a real install.
+	const nonInteractive = isNonInteractive(cmd) || dryRun;
 
 	// Exit cleanly rather than hang on a prompt. We do not silently fall back
 	// to -y: that installs into every detected tool, which should be an
@@ -94,7 +126,8 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const installSkillsSelected = !opts.skipSkills;
 
 	if (nonInteractive) {
-		toInstall = detected.length > 0 ? detected : stacks;
+		// Nothing detected → no stacks: their installers need the tool itself.
+		toInstall = detected;
 	} else {
 		const selected = await multiselect({
 			message: "What do you want to set up?",
@@ -122,7 +155,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		const result = await applyStack({
 			name: stack.id,
 			verb: "install",
-			dryRun: !!opts.dryRun,
+			dryRun,
 			json,
 			skipConfirm: true,
 			source: "setup",
@@ -132,11 +165,18 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 		results.push(result);
 
 		if (!json && result.status !== "failed") {
-			log.success(`${stack.name} — done`);
+			if (result.status === "dry_run") {
+				log.success(`${stack.name} — dry run`);
+			} else if (result.warnings?.length) {
+				log.warn(`${stack.name} — done, but see the warning above`);
+			} else {
+				log.success(`${stack.name} — done`);
+			}
 		}
 	}
 
 	let skillsInstalled = false;
+	let skillsJson: SkillsJson = { status: "not_requested" };
 
 	// Native plugins already bundle the skills: only install them for
 	// detected agents that did not get a plugin, plus the shared
@@ -150,14 +190,15 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const skillsCmd = buildSkillsCommand({ agents: skillsAgents });
 
 	if (installSkillsSelected) {
-		if (nonInteractive || opts.dryRun || skillsAgents.length === 0) {
+		if (nonInteractive || skillsAgents.length === 0) {
 			const skills = await applySkills({
-				dryRun: !!opts.dryRun,
+				dryRun,
 				json,
 				yes: true,
 				emit: "steps",
 				agents: skillsAgents,
 			});
+			skillsJson = { ...skills, agents: skillsAgents };
 			skillsInstalled = skills.status === "installed";
 			if (skills.status === "failed" && !json) {
 				log.info(`You can install later: ${pc.cyan(skillsCmd)}`);
@@ -187,6 +228,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 					emit: "steps",
 					agents: skillsAgents,
 				});
+				skillsJson = { ...skills, agents: skillsAgents };
 				skillsInstalled = skills.status === "installed";
 				if (skills.status === "installed" && !json) {
 					log.success("Skills installed from Authstack.");
@@ -195,6 +237,7 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 					log.info(`You can install later: ${pc.cyan(skillsCmd)}`);
 				}
 			} else {
+				skillsJson = { status: "manual", command: skillsCmd };
 				log.info("");
 				log.info("Run this to install Scalekit skills from Authstack:");
 				log.info(`  ${pc.cyan(skillsCmd)}`);
@@ -209,22 +252,40 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 	const succeeded = results.filter((r) => r.status !== "failed").length;
 	const failed = results.filter((r) => r.status === "failed").length;
 
+	// `-y` on a machine with no supported agent: say so, and how to target one.
+	const noAgent = nonInteractive && toInstall.length === 0;
+	const noAgentMessage = noAgent
+		? noAgentDetectedMessage(
+				skillsJson.status === "manual" ? "skipped" : skillsJson.status,
+			)
+		: undefined;
+	// Nothing at all was (or would be) installed: that is a failed run.
+	const nothingInstalled =
+		noAgent && installSkillsSelected && skillsJson.status === "failed";
+
 	if (json) {
 		jsonOut({
+			detected: detected.map((s) => s.id),
 			extensions: results.map((r) => ({
 				id: r.extension,
 				name: r.name,
 				status: r.status,
 				steps: r.steps,
 				nextSteps: r.nextSteps,
+				...(r.warnings?.length ? { warnings: r.warnings } : {}),
 				error: r.error,
 			})),
+			skills: skillsJson,
 			summary: { succeeded, failed },
+			...(noAgentMessage ? { message: noAgentMessage } : {}),
 		});
+		if (failed > 0 || nothingInstalled) process.exit(1);
 		return;
 	}
 
-	if (!opts.dryRun) {
+	if (noAgentMessage) log.info(noAgentMessage);
+
+	if (!dryRun) {
 		const installed = toInstall.filter(
 			(s) => results.find((r) => r.extension === s.id)?.status === "installed",
 		);
@@ -246,8 +307,11 @@ async function interactiveSetup(opts: SetupOpts, cmd: Command) {
 
 	const total = succeeded + (skillsInstalled ? 1 : 0);
 
-	if (opts.dryRun) {
+	if (dryRun) {
 		outro("Dry run complete — no commands were executed.");
+	} else if (nothingInstalled) {
+		outro("Done. Nothing was installed.");
+		process.exit(1);
 	} else if (failed === 0) {
 		outro(
 			`Setup complete! ${total} component${total !== 1 ? "s" : ""} installed.`,
@@ -316,7 +380,9 @@ Examples:
   $ scalekit setup cursor       set up Cursor directly (alias for setup extension cursor)
   $ scalekit setup extension cc shortcut → extension install claude
   $ scalekit setup codex -y     skip confirmation
-  $ scalekit setup --dry-run    preview commands without running them
+  $ scalekit setup -y           set up every detected agent, no prompts
+  $ scalekit setup --dry-run    preview what -y would do (no prompts, nothing runs)
+  $ scalekit setup -y --json    machine-readable result on stdout
   $ scalekit setup --skip-skills          stacks only (skip Scalekit skills)`,
 	)
 	.action(

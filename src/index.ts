@@ -7,6 +7,8 @@ import { skillsCommand } from "./commands/skills.js";
 import { updateCommand } from "./commands/update.js";
 import { checkAndPromptForCliUpdateOnRoot } from "./core/cli-update.js";
 import { styledCommand } from "./core/help.js";
+import { isJson } from "./core/output.js";
+import { setChildStdoutToStderr } from "./core/shell.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -20,7 +22,11 @@ const program = styledCommand("scalekit")
 	.option("--json", "output machine-readable JSON")
 	.option("-y, --non-interactive", "skip all prompts, use defaults")
 
-	.addHelpCommand(false);
+	.addHelpCommand(false)
+	.hook("preAction", (_root, actionCommand) => {
+		// Keep stdout a single JSON document: child tools write to stderr.
+		setChildStdoutToStderr(isJson(actionCommand));
+	});
 
 program.addCommand(extensionCommand);
 program.addCommand(setupCommand);

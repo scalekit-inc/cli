@@ -5,7 +5,13 @@ import { AUTHSTACK_REPO } from "../../src/core/authstack.js";
 vi.mock("@clack/prompts", () => ({
 	intro: vi.fn(),
 	outro: vi.fn(),
-	log: { info: vi.fn(), step: vi.fn(), success: vi.fn(), error: vi.fn() },
+	log: {
+		info: vi.fn(),
+		step: vi.fn(),
+		success: vi.fn(),
+		error: vi.fn(),
+		warn: vi.fn(),
+	},
 	multiselect: vi.fn(),
 	select: vi.fn(),
 	confirm: vi.fn(),
@@ -143,13 +149,59 @@ describe("setup --yes", () => {
 		);
 	});
 
-	it("installs all stacks when none detected", async () => {
+	it("installs no stacks when none detected, only the universal skills", async () => {
 		stubStacks({ detect: false });
 		await run(["--yes"]);
 
 		for (const stack of stacks) {
-			expect(stack.install).toHaveBeenCalled();
+			expect(stack.install).not.toHaveBeenCalled();
 		}
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ agents: ["universal"], dryRun: false }),
+		);
+		expect(mockLog.info).toHaveBeenCalledWith(
+			"No supported coding agent detected (Cursor, Claude Code, Codex, GitHub Copilot). Installed Scalekit skills to ~/.agents/skills. To set up one agent: npx @scalekit-inc/cli setup <cursor|claude|codex|copilot> -y",
+		);
+		const { outro } = await import("@clack/prompts");
+		expect(outro).toHaveBeenCalledWith(
+			"Setup complete! 1 component installed.",
+		);
+		expect(process.exit).not.toHaveBeenCalled();
+	});
+
+	it("none detected + --skip-skills says skills were skipped", async () => {
+		stubStacks({ detect: false });
+		await run(["--yes", "--skip-skills"]);
+
+		expect(mockApplySkills).not.toHaveBeenCalled();
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Skipped Scalekit skills (--skip-skills)."),
+		);
+		expect(process.exit).not.toHaveBeenCalled();
+	});
+
+	it("none detected + skills failed exits 1 (nothing installed)", async () => {
+		stubStacks({ detect: false });
+		mockApplySkills.mockResolvedValueOnce({
+			status: "failed",
+			steps: [],
+			error: "network error",
+		});
+
+		await expect(run(["--yes"])).rejects.toThrow("process.exit(1)");
+
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining("Scalekit skills were not installed"),
+		);
+	});
+
+	it("does not print the no-agent line when an agent was detected", async () => {
+		stubStacks({ detect: true });
+		await run(["--yes"]);
+		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
+		expect(calls.some((c) => c.includes("No supported coding agent"))).toBe(
+			false,
+		);
 	});
 });
 
@@ -285,15 +337,19 @@ describe("next steps after setup", () => {
 		}
 	});
 
-	it("does not show next steps for cursor (none defined)", async () => {
+	it("shows next steps for cursor after direct setup", async () => {
 		const cursor = stacks[0];
 		vi.spyOn(cursor, "install").mockResolvedValue(["cursor-step"]);
-		mockConfirm.mockResolvedValue(true as never);
+		mockConfirm
+			.mockResolvedValueOnce(true as never)
+			.mockResolvedValueOnce(false as never);
 
 		await run(["cursor"]);
 
-		const calls = mockLog.info.mock.calls.map((c) => c[0] as string);
-		expect(calls.some((c) => c.includes("Next steps"))).toBe(false);
+		for (const step of cursor.nextSteps ?? []) {
+			expect(mockLog.info).toHaveBeenCalledWith(expect.stringContaining(step));
+		}
+		expect(cursor.nextSteps?.join(" ")).toContain("Reload Window");
 	});
 
 	it("shows next steps in interactive setup", async () => {
@@ -590,5 +646,139 @@ describe("setup without a terminal", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		await expect(run(["cursor"])).rejects.toThrow("process.exit(1)");
 		expect(mockConfirm).not.toHaveBeenCalled();
+	});
+});
+
+describe("setup --dry-run (no -y)", () => {
+	it("previews what -y would do without prompting, even with a terminal", async () => {
+		stubStacks({ detect: true });
+		await run(["--dry-run"]);
+
+		expect(mockMultiselect).not.toHaveBeenCalled();
+		expect(mockSelect).not.toHaveBeenCalled();
+		for (const stack of stacks) {
+			expect(stack.install).toHaveBeenCalledWith({ preview: true });
+			expect(stack.install).toHaveBeenCalledTimes(1);
+		}
+		expect(mockApplySkills).toHaveBeenCalledWith(
+			expect.objectContaining({ dryRun: true }),
+		);
+	});
+
+	it("works without a terminal and never installs for real", async () => {
+		stubStacks({ detect: true });
+		setTTY(false);
+		const err = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		await run(["--dry-run"]);
+
+		expect(err).not.toHaveBeenCalled();
+		for (const stack of stacks) {
+			expect(stack.install).not.toHaveBeenCalledWith();
+			expect(stack.install).not.toHaveBeenCalledWith(
+				expect.objectContaining({ onWarning: expect.any(Function) }),
+			);
+		}
+		const { outro } = await import("@clack/prompts");
+		expect(outro).toHaveBeenCalledWith(
+			"Dry run complete — no commands were executed.",
+		);
+	});
+
+	it("says '<Tool> — dry run', not '— done'", async () => {
+		stubStacks({ detect: true });
+		await run(["--dry-run"]);
+
+		expect(mockLog.success).toHaveBeenCalledWith("Cursor — dry run");
+		expect(mockLog.success).not.toHaveBeenCalledWith("Cursor — done");
+	});
+
+	it("none detected: previews the universal skills and says so", async () => {
+		stubStacks({ detect: false });
+		mockApplySkills.mockResolvedValueOnce({ status: "dry_run", steps: [] });
+		await run(["--dry-run"]);
+
+		for (const stack of stacks) {
+			expect(stack.install).not.toHaveBeenCalled();
+		}
+		expect(mockLog.info).toHaveBeenCalledWith(
+			expect.stringContaining(
+				"Would install Scalekit skills to ~/.agents/skills.",
+			),
+		);
+	});
+});
+
+describe("setup install warnings", () => {
+	it("wizard does not report a clean 'done' when the stack warned", async () => {
+		const [cursor, claude, codex, copilot] = stacks;
+		for (const s of [cursor, claude, copilot]) {
+			vi.spyOn(s, "detect").mockReturnValue(false);
+		}
+		vi.spyOn(codex, "detect").mockReturnValue(true);
+		vi.spyOn(codex, "install").mockImplementation(async (opts) => {
+			if (!opts?.preview) opts?.onWarning?.("marketplace conflict");
+			return ["codex-step"];
+		});
+
+		await run(["--yes"]);
+
+		expect(mockLog.warn).toHaveBeenCalledWith("marketplace conflict");
+		expect(mockLog.warn).toHaveBeenCalledWith(
+			"Codex — done, but see the warning above",
+		);
+		expect(mockLog.success).not.toHaveBeenCalledWith("Codex — done");
+	});
+});
+
+describe("setup --json", () => {
+	async function runJson(args: string[]) {
+		const { Command } = await import("commander");
+		const program = new Command();
+		program.option("--json");
+		program.option("-y, --non-interactive");
+		program.addCommand(setupCommand);
+		const out = vi.spyOn(console, "log").mockImplementation(() => {});
+		await program.parseAsync(["--json", "setup", ...args], { from: "user" });
+		return JSON.parse(out.mock.calls.at(-1)?.[0] as string);
+	}
+
+	it("includes the skills result", async () => {
+		stubStacks({ detect: true });
+		const data = await runJson(["-y"]);
+
+		expect(data.skills).toEqual(
+			expect.objectContaining({
+				status: "installed",
+				agents: expect.any(Array),
+				steps: expect.any(Array),
+			}),
+		);
+		expect(data.extensions).toHaveLength(stacks.length);
+	});
+
+	it("reports skills as not_requested with --skip-skills", async () => {
+		stubStacks({ detect: true });
+		const data = await runJson(["-y", "--skip-skills"]);
+		expect(data.skills).toEqual({ status: "not_requested" });
+	});
+
+	it("none detected: empty extensions, a message, skills installed", async () => {
+		stubStacks({ detect: false });
+		const data = await runJson(["-y"]);
+
+		expect(data.detected).toEqual([]);
+		expect(data.extensions).toEqual([]);
+		expect(data.skills.status).toBe("installed");
+		expect(data.message).toContain("No supported coding agent detected");
+	});
+
+	it("exits 1 when a stack failed", async () => {
+		stubStacks({ detect: true });
+		vi.spyOn(stacks[0], "install").mockImplementation(async (opts) => {
+			if (!opts?.preview) throw new Error("boom");
+			return ["cursor-step"];
+		});
+		await expect(runJson(["-y"])).rejects.toThrow("process.exit(1)");
 	});
 });

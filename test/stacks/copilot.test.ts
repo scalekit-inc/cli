@@ -42,6 +42,34 @@ describe("copilotStack.detect", () => {
 });
 
 describe("copilotStack.install", () => {
+	beforeEach(() => {
+		// `which copilot` succeeds: the CLI is on PATH.
+		mockExecFileSync.mockReturnValue(Buffer.from(""));
+	});
+
+	it("fails with an install pointer when `copilot` is not on PATH", async () => {
+		mockExecFileSync.mockImplementation(() => {
+			throw new Error("not found");
+		});
+		const err = await copilotStack.install().catch((e: Error) => e);
+		expect(err).toBeInstanceOf(Error);
+		expect((err as Error).message).toContain(
+			"GitHub Copilot CLI (`copilot`) not found on PATH. Install it first: https://",
+		);
+		expect((err as Error).message).not.toContain("127");
+		expect(mockSpawn).not.toHaveBeenCalled();
+	});
+
+	it("preview does not require `copilot` on PATH", async () => {
+		mockExecFileSync.mockImplementation(() => {
+			throw new Error("not found");
+		});
+		await expect(copilotStack.install({ preview: true })).resolves.toHaveLength(
+			3,
+		);
+		expect(mockSpawn).not.toHaveBeenCalled();
+	});
+
 	it("resolves when all commands succeed", async () => {
 		fakeSpawn(0);
 		await expect(copilotStack.install()).resolves.toEqual(
@@ -66,6 +94,20 @@ describe("copilotStack.install", () => {
 });
 
 describe("copilotStack.uninstall", () => {
+	beforeEach(() => {
+		mockExecFileSync.mockReturnValue(Buffer.from(""));
+	});
+
+	it("fails with an install pointer when `copilot` is not on PATH", async () => {
+		mockExecFileSync.mockImplementation(() => {
+			throw new Error("not found");
+		});
+		await expect(copilotStack.uninstall?.()).rejects.toThrow(
+			"GitHub Copilot CLI (`copilot`) not found on PATH",
+		);
+		expect(mockSpawn).not.toHaveBeenCalled();
+	});
+
 	it("resolves when all uninstall commands succeed", async () => {
 		fakeSpawn(0);
 		await expect(copilotStack.uninstall?.()).resolves.toEqual(

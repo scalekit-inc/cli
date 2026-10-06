@@ -4,25 +4,70 @@ import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 
-const ID_FILE = join(homedir(), ".scalekit", "anonymous_id");
 const INGEST = "https://ph.scalekit.com/i/v0/e/";
 const TOKEN =
 	process.env.SCALEKIT_BEACON_TOKEN ||
 	"phc_85pLP8gwYvRCQdxgLQP24iqXHPRGaLgEw4S4dgZHJZ";
 
-async function getOrCreateDistinctId(): Promise<string> {
+export const TELEMETRY_NOTICE =
+	"Scalekit CLI sends anonymous usage events (see README → Telemetry). Opt out: SCALEKIT_TELEMETRY=0 or DO_NOT_TRACK=1\n";
+
+function idFile(): string {
+	return join(homedir(), ".scalekit", "anonymous_id");
+}
+
+async function readId(path: string): Promise<string | undefined> {
 	try {
-		return (await readFile(ID_FILE, "utf-8")).trim();
+		const id = (await readFile(path, "utf-8")).trim();
+		return id || undefined;
 	} catch {
-		const id = randomUUID();
-		await mkdir(dirname(ID_FILE), { recursive: true });
-		await writeFile(ID_FILE, id, "utf-8");
-		// One-time notice: the id file only gets created on the first event.
-		process.stderr.write(
-			"Scalekit CLI sends anonymous usage events (see README → Telemetry). Opt out: SCALEKIT_TELEMETRY=0 or DO_NOT_TRACK=1\n",
-		);
+		return undefined;
+	}
+}
+
+async function loadOrCreateDistinctId(): Promise<string> {
+	const path = idFile();
+	const existing = await readId(path);
+	if (existing) return existing;
+
+	const id = randomUUID();
+	await mkdir(dirname(path), { recursive: true });
+	try {
+		// "wx": only one writer (this or another CLI process) creates the id.
+		await writeFile(path, id, { encoding: "utf-8", flag: "wx" });
+	} catch (err) {
+		if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+		const winner = await readId(path);
+		if (winner) return winner;
+		// Empty or unreadable file: repair it rather than stay id-less.
+		await writeFile(path, id, "utf-8");
 		return id;
 	}
+	// One-time notice: printed only by the writer that created the id file.
+	process.stderr.write(TELEMETRY_NOTICE);
+	return id;
+}
+
+let distinctId: Promise<string> | undefined;
+
+/**
+ * One promise per process: concurrent `void emitBeacon(...)` calls share the
+ * same id and the notice prints at most once.
+ */
+export function getOrCreateDistinctId(): Promise<string> {
+	if (!distinctId) {
+		distinctId = loadOrCreateDistinctId();
+		// A failed attempt (e.g. read-only HOME) may be retried later.
+		distinctId.catch(() => {
+			distinctId = undefined;
+		});
+	}
+	return distinctId;
+}
+
+/** Test hook: forget the memoized id. */
+export function resetDistinctIdForTests(): void {
+	distinctId = undefined;
 }
 
 function getCliVersion(): string {

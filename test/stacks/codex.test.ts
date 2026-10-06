@@ -116,9 +116,26 @@ describe("codexStack.install", () => {
 			JSON.stringify({ name: "my-other-marketplace" }) as unknown as Buffer,
 		);
 
-		await codexStack.install();
+		const onWarning = vi.fn();
+		await codexStack.install({ onWarning });
 
 		expect(mockWriteFile).not.toHaveBeenCalled();
+		expect(onWarning).toHaveBeenCalledTimes(1);
+		const message = onWarning.mock.calls[0][0] as string;
+		expect(message).toContain(PERSONAL_MARKETPLACE);
+		expect(message).toContain('"my-other-marketplace" marketplace');
+		expect(message).toContain("Codex will not list the Scalekit plugins");
+		expect(message).toContain(`${MARKETPLACE_DIR}/kits/agentkit`);
+		expect(message).toContain("npx @scalekit-inc/cli setup codex -y");
+	});
+
+	it("does not warn when it writes the personal marketplace", async () => {
+		mockReadFile.mockRejectedValue(
+			Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
+		);
+		const onWarning = vi.fn();
+		await codexStack.install({ onWarning });
+		expect(onWarning).not.toHaveBeenCalled();
 	});
 
 	it("throws when download fails", async () => {
@@ -127,6 +144,18 @@ describe("codexStack.install", () => {
 			Object.assign(new Error("ENOENT"), { code: "ENOENT" }),
 		);
 		await expect(codexStack.install()).rejects.toThrow("Download failed: 404");
+	});
+});
+
+describe("codex next steps", () => {
+	it("point at the plugin directory, not an MCP login", () => {
+		const steps = codexStack.nextSteps ?? [];
+		expect(steps.join("\n")).not.toContain("mcp login");
+		expect(steps).toContain("Restart Codex");
+		expect(steps.join("\n")).toContain(
+			`enable agentkit and saaskit from the ${AUTHSTACK_MARKETPLACE} marketplace`,
+		);
+		expect(steps.join("\n")).toContain("/plugins");
 	});
 });
 

@@ -21,18 +21,46 @@ export function macUrlOpenArgs(href: string): string[] {
 	return [href];
 }
 
-function run(
+function shellQuote(arg: string): string {
+	if (/^[\w@%+=:,./-]+$/.test(arg)) return arg;
+	return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
+/** What to tell the user when the program that should open `destination` is missing. */
+export function launcherMissingMessage(
+	file: string,
+	destination: Destination,
+): string {
+	return destination.kind === "url"
+		? `Could not open the link: \`${file}\` was not found. Open this URL manually:\n${destination.href}`
+		: `Could not start \`${file}\`: not found on PATH. Install it, or run this yourself:\n${destination.argv.map(shellQuote).join(" ")}`;
+}
+
+export function runLauncher(
 	file: string,
 	args: string[],
 	stdio: "ignore" | "inherit",
+	destination: Destination,
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const child = spawn(file, args, { stdio });
 		child.on("close", (code) => {
 			if (code === 0) resolve();
+			else if (destination.kind === "url")
+				reject(
+					new Error(
+						`Could not open the link (\`${file}\` exited with code ${code}). Open this URL manually:\n${destination.href}`,
+					),
+				);
 			else reject(new Error(`"${file}" exited with code ${code}`));
 		});
-		child.on("error", reject);
+		child.on("error", (err: NodeJS.ErrnoException) => {
+			if (err.code === "ENOENT") {
+				reject(new Error(launcherMissingMessage(file, destination)));
+				return;
+			}
+			reject(err);
+		});
 	});
 }
 
@@ -46,6 +74,9 @@ function macProcessNamed(name: string): boolean {
 }
 
 async function openMacUrl(href: string): Promise<void> {
+	const destination: Destination = { kind: "url", href };
+	const run = (file: string, args: string[], stdio: "ignore") =>
+		runLauncher(file, args, stdio, destination);
 	const args = macUrlOpenArgs(href);
 	const cold = href.startsWith("codex://") && !macProcessNamed("Codex");
 	try {
@@ -67,7 +98,7 @@ export async function defaultLaunch(destination: Destination): Promise<void> {
 	if (destination.kind === "argv") {
 		const [file, ...args] = destination.argv;
 		if (!file) throw new Error("empty argv");
-		await run(file, args, "inherit");
+		await runLauncher(file, args, "inherit", destination);
 		return;
 	}
 	if (process.platform === "darwin") {
@@ -75,8 +106,13 @@ export async function defaultLaunch(destination: Destination): Promise<void> {
 		return;
 	}
 	if (process.platform === "win32") {
-		await run("cmd", ["/c", "start", "", destination.href], "ignore");
+		await runLauncher(
+			"cmd",
+			["/c", "start", "", destination.href],
+			"ignore",
+			destination,
+		);
 		return;
 	}
-	await run("xdg-open", [destination.href], "ignore");
+	await runLauncher("xdg-open", [destination.href], "ignore", destination);
 }

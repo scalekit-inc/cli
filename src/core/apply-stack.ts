@@ -14,6 +14,8 @@ export type ApplyResult = {
 	status: "dry_run" | "installed" | "updated" | "uninstalled" | "failed";
 	steps: string[];
 	nextSteps: string[];
+	/** Non-fatal problems the user must act on (see `ApplyOpts.onWarning`). */
+	warnings?: string[];
 	error?: string;
 };
 
@@ -63,7 +65,7 @@ export async function applyStack(input: {
 	if (!input.skipConfirm) {
 		requireInteractiveTerminal(
 			input.json,
-			`npx @scalekit-inc/cli ${input.source === "setup" ? "setup" : `extension ${input.verb}`} ${stack.id} -y`,
+			`npx @scalekit-inc/cli ${input.source === "setup" ? "setup" : `extension ${input.verb}`} ${stack.id}${input.dryRun ? " --dry-run" : ""} -y`,
 		);
 		const ok = await confirm({
 			message: confirmMessage[input.verb](stack.name),
@@ -120,9 +122,15 @@ export async function applyStack(input: {
 		return result;
 	}
 
+	const warnings: string[] = [];
+	const onWarning = (message: string) => {
+		warnings.push(message);
+		if (!input.json) log.warn(message);
+	};
+
 	try {
-		if (input.verb === "uninstall") await stack.uninstall?.();
-		else await stack.install();
+		if (input.verb === "uninstall") await stack.uninstall?.({ onWarning });
+		else await stack.install({ onWarning });
 		await cacheInvalidate(stack.id);
 		emitSetupBeacon(stack.id, {
 			mode: input.mode,
@@ -145,6 +153,7 @@ export async function applyStack(input: {
 				status,
 				steps: stepList,
 				nextSteps: stack.nextSteps ?? [],
+				...(warnings.length > 0 ? { warnings } : {}),
 			});
 		} else if (input.emit === "full") {
 			const done =
@@ -153,7 +162,8 @@ export async function applyStack(input: {
 					: status === "updated"
 						? `${stack.name} — updated`
 						: `${stack.name} — done`;
-			log.success(done);
+			if (warnings.length > 0) log.warn(`${done}, but see the warning above`);
+			else log.success(done);
 			if (status !== "uninstalled" && stack.nextSteps?.length) {
 				log.info(pc.bold("\nNext steps:"));
 				for (const step of stack.nextSteps) {
@@ -168,6 +178,7 @@ export async function applyStack(input: {
 			status,
 			steps: stepList,
 			nextSteps: stack.nextSteps ?? [],
+			...(warnings.length > 0 ? { warnings } : {}),
 		};
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
