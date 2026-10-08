@@ -4,6 +4,8 @@
 
 **Auth stacks for AI coding tools — one command away.**
 
+Scalekit provides auth and actions on behalf of users, with 500+ connectors and 20,000+ tools.
+
 [![npm version](https://img.shields.io/npm/v/@scalekit-inc/cli)](https://www.npmjs.com/package/@scalekit-inc/cli)
 ![Node version](https://img.shields.io/node/v/@scalekit-inc/cli)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
